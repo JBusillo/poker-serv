@@ -1,0 +1,14 @@
+playerData
+    dealer (uuid)
+    players{uuid}
+			name
+			money
+			winnings
+			buyin
+			dealer
+			thisHand    //out, in, ante-up, fold, call, raise $x.xx
+			nextHand:   //out
+			tableSequence: ++tableSequence,
+    order[]             //ordered array
+            uuid
+
