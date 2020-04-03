@@ -5,21 +5,23 @@ import bodyParser from 'body-parser';
 import config from './config.js';
 import Players from './players.js';
 import * as Deck from './deck';
+// import cors from 'cors';
 
 export let app;
 export let server;
 export let io;
-export async function Startup() {
+export async function startUp() {
 	//
 	app = await express();
+
 	server = await http.createServer(app);
+
 	io = await socketIo(server);
-	console.log('XXXfY');
 
 	server.listen(config.port);
 	console.log(`Listening on ${config.port}`);
 
-	app.use(function(req, res, next) {
+	app.use((req, res, next) => {
 		res.header('Access-Control-Allow-Origin', config.headerOrigin);
 		res.header('Access-Control-Allow-Credentials', 'true');
 		res.header(
@@ -39,13 +41,11 @@ export async function Startup() {
 	}); // for parsing application/json
 
 	Players.init();
-	//Players.init(app, io);
+
 	Deck.init();
 
-	app.get('/getPlayers', (req, res) => {
-		res.setHeader('Content-Type', 'application/json');
-		res.send(JSON.stringify(players));
-	}); // for parsing application/json
+	// app.get('/getPlayers', (req, res) => {
+	// 	res.setHeader('Content-Type', 'application/json');
+	// 	res.send(JSON.stringify(players));
+	// }); // for parsing application/json
 }
-
-//module.exports = { app, server, io, Startup };

@@ -7,7 +7,9 @@ const devServer = require('webpack-dev-server');
 module.exports = (env, argv) => {
 	const SERVER_PATH =
 		argv.mode === 'production' ? './src/server.prod.js' : './src/server.dev.js';
+
 	const OUT_DIR = argv.mode === 'production' ? 'dist' : 'debug';
+	console.log(SERVER_PATH);
 	return {
 		entry: {
 			server: SERVER_PATH,
@@ -25,8 +27,15 @@ module.exports = (env, argv) => {
 		},
 		externals: [nodeExternals()], // Need this to avoid error when working with Express
 		devtool: 'inline-source-map',
-		devServer: { writeToDisk: true },
-
+		//		devServer: { writeToDisk: true },
+		plugins: [
+			// new NodemonPlugin({
+			// 	watch: path.resolve('./debug'),
+			// 	nodeArgs: ['--inspect=9230'],
+			// 	script: './debug/server.js',
+			// 	ext: 'js',
+			// }), // Dong
+		],
 		//		plugins: [new webpack.SourceMapDevToolPlugin({}), new NodemonPlugin()],
 		module: {
 			rules: [

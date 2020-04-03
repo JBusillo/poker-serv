@@ -9,22 +9,26 @@
 			"type": "node",
 			"request": "launch",
 			"cwd": "${workspaceFolder}",
-			"runtimeExecutable": "npm",
-			"runtimeArgs": ["run-script", "dev"],
-			"port": 9229,
+			// "runtimeExecutable": "npm",
+			// "runtimeArgs": ["run-script", "dev"],
+			"port": 9230,
 			"sourceMaps": true,
 			"outFiles": ["${workspaceRoot}/debug/server.js"],
-			"restart": true
+			"restart": true,
+			"preLaunchTask": "npm: debug"
 		},
 		{
+			"name": "Launch Simple",
 			"type": "node",
 			"request": "launch",
-			"name": "build",
-			"program": "${workspaceFolder}/node_modules/.bin/webpack-cli.ps1",
-			"args": ["--config", "webpack.server.config.js"],
-			"autoAttachChildProcesses": true,
-			"stopOnEntry": true,
-			"sourceMaps": true
+			"cwd": "${workspaceFolder}",
+			"runtimeExecutable": "npm",
+			"runtimeArgs": ["run-script", "dev"],
+			"port": 9230,
+			"sourceMaps": true,
+			"restart": true,
+			"outFiles": ["${workspaceRoot}/debug/server.js"]
+			// "preLaunchTask": "npm: debug"
 		}
 	]
 }

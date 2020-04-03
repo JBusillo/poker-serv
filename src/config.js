@@ -1,7 +1,7 @@
 let _cfg = null;
 
 export default class Config {
-	static SetConfig(cfg) {
+	static setConfig(cfg) {
 		_cfg = cfg;
 	}
 

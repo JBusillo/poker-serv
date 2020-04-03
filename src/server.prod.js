@@ -1,11 +1,11 @@
-import * as serve './server.js';
-import cfg from 'config.js';
+import * as serve from './server';
+import cfg from './config.js';
 
 export const config = {
 	environment: 'production',
 	headerOrigin: 'http://poker.cuencador.com',
-	port: 8082,
+	port: 8083,
 };
-cfg.SetConfig(config);
+cfg.setConfig(config);
 
-serve.Startup();
+serve.startUp();

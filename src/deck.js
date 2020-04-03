@@ -1,4 +1,4 @@
-import { app, io } from './server';
+//import { app, io } from './server';
 import { PokerDeck } from './pokerdeck';
 import { players } from './players';
 
@@ -23,8 +23,8 @@ export function init() {
 }
 
 export function shuffle() {
-	var array = [...PokerDeck];
-	var m = array.length,
+	let array = [...PokerDeck];
+	let m = array.length,
 		t,
 		i;
 

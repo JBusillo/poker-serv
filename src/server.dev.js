@@ -7,6 +7,6 @@ const config = {
 	port: 8080,
 };
 
-cfg.SetConfig(config);
+cfg.setConfig(config);
 
-serve.Startup();
+serve.startUp();
