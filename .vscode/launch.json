@@ -26,6 +26,7 @@
 			"runtimeArgs": ["run-script", "dev"],
 			"port": 9230,
 			"sourceMaps": true,
+			"outputCapture": "std",
 			"restart": true,
 			"outFiles": ["${workspaceRoot}/debug/server.js"]
 			// "preLaunchTask": "npm: debug"
