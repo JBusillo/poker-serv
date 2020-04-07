@@ -1,4 +1,4 @@
-import { app, io } from './server';
+import { io, router } from './server';
 import { v4 as uuidv4 } from 'uuid';
 import * as Deck from './deck';
 import winston from 'winston';
@@ -7,20 +7,20 @@ let Players = { players: [], dealer: null, seq: [] };
 
 function init() {
 	// add the route
-	app.get('/addPlayer', (req, res) => {
-		addPlayer(req, res);
+	router.get('/addPlayer', (req, res, next) => {
+		addPlayer(req, res, next);
 	});
 
-	app.get('/startTable', (req, res) => {
-		startTable(req, res);
+	router.get('/startTable', (req, res, next) => {
+		startTable(req, res, next);
 	});
 
-	app.get('/doButton', (req, res) => {
-		doButton(req, res);
+	router.get('/doButton', (req, res, next) => {
+		doButton(req, res, next);
 	});
 
-	app.get('/playerReady', (req, res) => {
-		playerReady(req, res);
+	router.get('/playerReady', (req, res, next) => {
+		playerReady(req, res, next);
 	});
 
 	// add the channel (notify when 'players' has changed
@@ -29,18 +29,19 @@ function init() {
 	});
 }
 
-function doButton(req, res) {
+function doButton(req, res, next) {
 	try {
 		winston.info(`in doButton`);
-		startTable(req, res);
+		startTable();
 		res.send(JSON.stringify({ status: 'OK' }));
 	} catch (e) {
 		winston.error('in doButton %s', e);
 		res.send(JSON.stringify({ status: 'Error', message: e }));
+		next(e);
 	}
 }
 
-function playerReady(req, res) {
+function playerReady(req, res, next) {
 	try {
 		winston.info(`playerReady, uuid = ${req.query.uuid}`);
 		let uuid = req.query.uuid;
@@ -59,10 +60,11 @@ function playerReady(req, res) {
 	} catch (e) {
 		winston.error('in playerReady %s', e);
 		res.send(JSON.stringify({ status: 'Error', message: e }));
+		next(e);
 	}
 }
 
-function addPlayer(req, res) {
+function addPlayer(req, res, next) {
 	try {
 		winston.info(`'addPlayer req query uuid = ${req.query.uuid}`);
 		let uuid = req.query.uuid;
@@ -90,8 +92,8 @@ function addPlayer(req, res) {
 
 		res.send(JSON.stringify({ status: 'OK', uuid }));
 	} catch (e) {
-		winston.error('in addPlayer %s', e);
 		res.send(JSON.stringify({ status: 'Error', message: e }));
+		next(e);
 	}
 }
 
@@ -121,6 +123,11 @@ async function startTable() {
 			message: `Shuffling the deck...`,
 		});
 
+		//clear everyone's cards!!!
+		for (let i = 0; i < Players.players.length; i++) {
+			Players.players[i].cards = [];
+		}
+
 		Deck.shuffle();
 		let aceFound = false;
 
@@ -128,7 +135,7 @@ async function startTable() {
 		while (!aceFound) {
 			for (let i = 0; i < Players.players.length; i++) {
 				let player = Players.players[i];
-				await sleep(500);
+				await sleep(100);
 				card = Deck.draw();
 				player.cards.push(card.short);
 				io.emit(player.uuid, 'MyCards', { cards: player.cards });
@@ -147,6 +154,7 @@ async function startTable() {
 		}
 	} catch (e) {
 		winston.error('in startTable %s', e);
+		throw e;
 	}
 }
 

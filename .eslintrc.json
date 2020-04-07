@@ -12,7 +12,8 @@
 		"no-console": "off",
 		"brace-style": "off",
 		"react/jsx-no-bind": "off",
-		"no-unused-vars": "warn"
+		"no-unused-vars": "warn",
+		"new-cap": "off"
 	},
 	"extends": "eslint-config-synacor"
 }

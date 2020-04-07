@@ -9,7 +9,7 @@ export function init() {
 	deck = shuffle();
 
 	let disp = '';
-	deck.forEach(cd => {
+	deck.forEach((cd) => {
 		disp = disp + cd + ':';
 	});
 	winston.info('Shuffled Deck: %s', disp);
@@ -32,12 +32,21 @@ export function shuffle() {
 		array[i] = t;
 	}
 
+	deck = array;
+	deckPointer = 0;
+
+	let disp = '';
+	deck.forEach((cd) => {
+		disp = disp + cd + ':';
+	});
+	winston.info('Shuffled Deck: %s', disp);
+
 	return array;
 }
 
 export function deal(numberOfCards) {
 	burn();
-	players.forEach(element => {});
+	players.forEach((element) => {});
 	// find dealer
 	// circular deal, dealer+1 around to dealer
 }
