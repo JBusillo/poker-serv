@@ -23,11 +23,26 @@ function init() {
 		playerReady(req, res, next);
 	});
 
+	router.get('/startRound', (req, res, next) => {
+		startRound(req, res, next);
+	});
+
 	// add the channel (notify when 'players' has changed
 	io.on('connection', (socket) => {
 		socket.emit('playerData', publicPlayerData());
+		socket.on('ClientMessage', (data) => {
+			switch (data.msgType) {
+				case 'test':
+					console.log('Received Test');
+					break;
+				default:
+					console.log('Default');
+			}
+		});
 	});
 }
+
+function startRound(req, res, next) {}
 
 function doButton(req, res, next) {
 	try {
