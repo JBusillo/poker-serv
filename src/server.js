@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 import config from './config.js';
 import Players from './players.js';
 import * as Deck from './deck';
-import { winster, WinsterLog, WinsterErrorLog } from './winster';
+import { winster } from './winster';
 import winston from 'winston';
 
 export let app;
@@ -17,8 +17,6 @@ export async function startUp() {
 	winster();
 
 	app = await express();
-
-	app.use(WinsterLog);
 
 	winston.info('Current Directory is %s', __dirname);
 
@@ -40,21 +38,9 @@ export async function startUp() {
 
 	app.use(router);
 
-	app.use(WinsterErrorLog);
-
 	app.use(bodyParser.json());
-
-	router.get('/', (req, res, next) => {
-		console.log('Init');
-		res.send('OK');
-	}); // for parsing application/json
 
 	Players.init();
 
 	Deck.init();
-
-	// app.get('/getPlayers', (req, res) => {
-	// 	res.setHeader('Content-Type', 'application/json');
-	// 	res.send(JSON.stringify(players));
-	// }); // for parsing application/json
 }

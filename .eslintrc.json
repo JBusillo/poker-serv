@@ -1,17 +1,13 @@
 {
 	"parserOptions": {
 		"ecmaVersion": 6,
-		"sourceType": "module",
-		"ecmaFeatures": {
-			"jsx": true
-		}
+		"sourceType": "module"
 	},
 	"rules": {
 		"comma-dangle": "off",
 		"lines-around-comment": "off",
 		"no-console": "off",
 		"brace-style": "off",
-		"react/jsx-no-bind": "off",
 		"no-unused-vars": "warn",
 		"new-cap": "off"
 	},
