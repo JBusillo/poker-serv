@@ -1,4 +1,4 @@
-import * as serve from './server';
+import { startUp } from './server';
 import cfg from './config.js';
 
 export const config = {
@@ -8,4 +8,4 @@ export const config = {
 };
 cfg.setConfig(config);
 
-serve.startUp();
+startUp();

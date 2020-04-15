@@ -1,207 +1,113 @@
 import { io } from './server';
 import { v4 as uuidv4 } from 'uuid';
-import * as Deck from './deck';
-import * as accounting from 'accounting';
-import * as controller from 'controller';
-import { startRound } from './round';
+import { Table, Players } from './controller';
 import winston from 'winston';
 
-let Players = { players: [], dealer: null, seq: [] };
-
-function init() {
-	// add the channel (notify when 'players' has changed
-	io.on('connection', (socket) => {
-		socket.emit('playerData', publicPlayerData());
-
-		socket.on('ClientMessage', (data, fn) => {
-			switch (data.msgType) {
-				case 'addPlayer':
-					addPlayer(data, fn);
-					break;
-				case 'playerReady':
-					playerReady(data, fn);
-					break;
-				case 'doButton':
-					doButton(data, fn);
-					break;
-				case 'startRound':
-					startRound(data, fn);
-					break;
-				default:
-					console.log(`Default ${data}`);
-			}
-		});
-	});
+function _Player(playerObj) {
+	this.uuid = playerObj.uuid;
+	this.name = playerObj.name;
+	this.sockid = playerObj.sockid;
+	this.chips = 0;
+	this.buyin = 0;
+	this.dealer = false;
+	this.status = 'wait';
+	this.onBreak = false;
+	this.cards = [];
+	this.actions = [];
 }
 
-function addPlayer(data, fn) {
-	try {
-		winston.info(`'addPlayer ${data}`);
-		let uuid = data.uuid;
-		if (!uuid) uuid = uuidv4();
+function _Players() {
+	this.players = [];
+	this.partPlayers = [];
+	// Round Robin "next" on partPlayers
+	this.partPlayers.next = function (uuid) {
+		let ix = this.partPlayers.findIndex((e) => e.uuid === uuid);
+		return this.partPlayers[ix >= this.partPlayers.length ? 0 : ix];
+	};
+	this.add = function (data, cb) {
+		try {
+			winston.info(`'addPlayer ${data}`);
+			let player;
 
-		let player = Players.players.find((e) => e.uuid === uuid);
+			// Generate uuid if none passed
+			let uuid = data.uuid;
+			if (!uuid) uuid = uuidv4();
 
-		if (!player) {
-			winston.info(`'adding player to table, uuid = ${uuid}`);
-			Players.players.push({
-				uuid,
-				name: data.player,
-				money: 0,
-				winnings: 0,
-				buyin: 0,
-				dealer: false,
-				thisHand: 'out', //out, in, ante-up, fold, call, broke, raise $x.xx
-				onBreak: 'false',
-				cards: [],
-				actions: [],
+			player = this.find(uuid);
+
+			if (!player) {
+				winston.info(`'adding player to table, uuid = ${uuid}`);
+				player = new _Player({
+					uuid,
+					name: data.player,
+					sockid: data.sid,
+				});
+
+				this.players.push(player);
+			}
+			this.refreshUI();
+
+			io.emit('PokerMessage', 'GameStatus', {
+				message: `${player.name} joined the table!!!`,
 			});
 
-			Players.seq.push(uuid);
+			io.to(data.sid).emit('PokerMessage', 'MyActions', {
+				buttons: [{ id: 'myStart', text: 'StartGame', bguid: 'testing' }],
+			});
+
+			//			io.emit(uuid, 'MyActions', { buttons: [{ id: 'myStart', text: 'StartGame', bguid: 'testing' }] });
+
+			cb({ uuid });
+		} catch (e) {
+			winston.error(`Error in player.add ${e.message}`);
 		}
+	};
 
-		fn({ status: 'OK', uuid });
-	} catch (e) {
-		fn({ status: 'Error', message: e });
-	}
-}
+	this.get = function () {
+		return this.players;
+	};
 
-function doButton(data, fn) {
-	try {
-		winston.info(`in doButton`);
-		startTable();
-		fn({ status: 'OK' });
-	} catch (e) {
-		fn({ status: 'Error', message: e });
-	}
-}
+	this.refreshUI = function () {
+		io.emit('PokerMessage', 'PlayerStatus', { players: this.players, options: { hasBegun: Table.hasBegun } });
+	};
 
-function playerReady(data, fn) {
-	try {
-		winston.info(`playerReady, ${data}`);
-		let uuid = data.uuid;
-
-		let player = Players.players.find((e) => e.uuid === uuid);
-
-		io.emit('PokerMessage', 'GameStatus', {
-			message: `${player.name} joined the game!!!`,
-		});
-
-		io.emit('PokerMessage', 'PlayerStatus', publicPlayerData());
-
-		io.emit(uuid, 'MyActions', { buttons: [{ id: 'myStart', text: 'StartGame', bguid: 'testing' }] });
-
-		fn({ status: 'OK', uuid });
-	} catch (e) {
-		fn({ status: 'Error', message: e });
-	}
-}
-
-function publicPlayerData() {
-	let publicData = [];
-	Players.players.forEach((el) => {
-		publicData.push({
-			name: el.name,
-			money: el.money,
-			winnings: el.winnings,
-			buyin: el.buyin,
-			dealer: el.dealer,
-			thisHand: el.thisHand, //out, in, ante-up, fold, call, raise $x.xx
-			nextHand: el.nextHand,
-		});
-	});
-	return publicData;
-}
-
-async function startTable() {
-	try {
-		winston.info(`in startTable`);
-
-		let card;
-
-		io.emit('PokerMessage', 'GameStatus', {
-			message: `Shuffling the deck...`,
-		});
-
-		//clear everyone's cards!!!
-		for (let i = 0; i < Players.players.length; i++) {
-			Players.players[i].cards = [];
+	this.each = async function (cb) {
+		let p = Players.get();
+		for (let i = 0; i < p.length; i++) {
+			let res = await cb(p[i]);
+			if (res === 'break') break;
 		}
+	};
 
-		Deck.shuffle();
-		let aceFound = false;
+	this.find = function (uuid) {
+		return this.players.find((e) => e.uuid === uuid);
+	};
 
-		//Round robin until Ace is found
-		while (!aceFound) {
-			for (let i = 0; i < Players.players.length; i++) {
-				let player = Players.players[i];
-				await sleep(200);
-				card = Deck.draw();
-				player.cards.push(card.short);
-				io.emit(player.uuid, 'MyCards', { cards: player.cards });
-				io.emit('PokerMessage', 'GameStatus', {
-					message: `${player.name} drew the ${card.long}`,
-				});
-				if (card.short.substr(1) === '14') {
-					aceFound = true;
-					player.dealer = true;
-					io.emit('PokerMessage', 'GameStatus', {
-						message: `We have a dealer: ${player.name}`,
-					});
-					io.emit(
-						player.uuid,
-						'Dialog',
-						{
-							dialog: 'Dealer',
-							chips: accounting.getChips(player.uuid),
-						},
-						(data) => {}
-					);
-					break;
+	this.freeze = function () {
+		let foundDealer = false;
+		let before = [];
+		let after = [];
+		this.each((el) => {
+			if (!el.onBreak) {
+				let player = { uuid: el.uuid, name: el.name, chips: el.chips, cards: [], status: 'ante-up' };
+				player.uuid = el.uuid;
+				if (el.dealer) {
+					player.status = 'in';
+					foundDealer = true;
+				}
+				if (foundDealer) {
+					before.push(player);
+				} else {
+					after.push(player);
 				}
 			}
-		}
-	} catch (e) {
-		winston.error('in startTable %s', e);
-		throw e;
-	}
-}
-
-export function freeze() {
-	let foundDealer = false;
-	let before = [];
-	let after = [];
-	Players.players.forEach((el) => {
-		if (!el.onBreak) {
-			let player = { uuid: el.uuid, name: el.name, chips: el.chips, cards: [], status: 'ante-up' };
-			player.uuid = el.uuid;
-			if (el.dealer) {
-				player.status = 'in';
-				foundDealer = true;
-			}
-			if (foundDealer) {
-				before.push(player);
-			} else {
-				after.push(player);
-			}
-		}
-		return [...before, ...after];
-	});
-
-	// uuid,
-	// name: data.player,
-	// money: 0,
-	// winnings: 0,
-	// buyin: 0,
-	// dealer: false,
-	// thisHand: 'out', //out, in, ante-up, fold, call, broke, raise $x.xx
-	// onBreak: 'false',
-	// cards: [],
-	// actions: [],
+			this.partPlayers = [...before, ...after];
+		});
+	};
 }
 
 function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-module.exports = { init, addPlayer, Players };
+module.exports = { _Players, _Player };

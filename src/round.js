@@ -1,54 +1,86 @@
-import * as players from 'players';
-import * as accounting from 'accounting';
+import { Players, Accounting, emitClient } from './controller';
 import { io } from './server';
+import winston from 'winston';
+import * as Deck from './deck';
 
-let partPlayers = [];
-let promises = [];
+function _Round() {
+	this.roundNumber = 0;
+	this.dealer = null;
 
-export function startRound(pData, fn) {
-	// freeze creates an array with participating players (not onbreak), with dealer first
-	// pPlayer    getPartPlayer(uuid)  setStatusPartPlayer
-	partPlayers = players.freeze();
-	let dealer = partPlayers[0].uuid;
-	let acceptResponses = true; // Set to false after time-out period
-	accounting.debitPlayer('buyin', dealer, pData.anteAmount);
-	accounting.creditPlayer('chips', dealer, pData.anteAmount);
+	this.dealerPass = function (pData, cb) {
+		let dealerUuid = Players.partPlayers.next();
+	};
 
-	partPlayers.foreach((el) => {
-		if (el.uuid !== dealer) {
-			io.emit(
-				'uuid',
-				'Dialog',
-				{ dialog: 'Ante', game: pData.game, anteAmount: pData.anteAmount },
-				(data) => {
-					// if promise was resolved/reject (should only happen on time-out), ignore any response
-					if (acceptResponses) {
-						// expect uuid: uuid, action: pay|sitout, buyinAmount: amount
-						if (data.buyinAmount) {
-							accounting.debitPlayer('buyin', data.uuid, data.buyinAmount);
-							accounting.creditPlayer('chips', data.uuid, data.buyinAmount);
-						}
-						if (data.action === 'pay') {
-							accounting.creditPot(data.uuid, pData.anteAmount);
-							accounting.debitPlayer('chips', data.uuid, data.buyinAmount);
-							players.setStatusPartPlayer(data.uuid, 'in');
-						} else if (data.action === 'sitout') {
-						}
-						el.resolve(data.action);
-					}
-				}
-			);
+	this.start = function (pData, cb) {
+		let promises = [];
+		// freeze creates an array with participating players (not onbreak), with dealer first
+		// pPlayer    getPartPlayer(uuid)  setStatusPartPlayer
+		Players.freeze();
 
-			el.promise = new Promise((resolve, reject) => {
-				el.resolve = resolve;
-				setTimeout(() => reject('timeout'), 30000);
-			});
-			promises.push(el.promise);
+		//clear everyone's cards!!!
+		Players.each((player) => {
+			player.cards = [];
+		});
+
+		if (this.dealer) {
+			this.dealer = Players.partPlayers.next();
+		} else {
+			this.dealer = this.getFirstDealer();
 		}
-	});
-	Promise.all(promises).then(() => {
-		Step2();
-	});
+
+		emitClient(
+			player.sockid,
+			'PokerMessage',
+			'Dialog',
+			{
+				dialog: 'Dealer',
+				chips: player.chips,
+			},
+			(data) => {}
+		);
+
+		let dealer = Players.partPlayers[0].uuid;
+		let acceptResponses = true; // Set to false after time-out period
+		//{ account: 'buyin', uuid: data.uuid, amount: data.amount }
+		Accounting.debit({ account: 'chips', player: dealer, amount: pData.anteAmount });
+		Accounting.credit({ account: 'pot', player: dealer, amount: pData.anteAmount });
+
+		Players.partPlayers.foreach((el) => {
+			if (el.uuid !== dealer) {
+				io.to(el.sockid).emit(
+					'PokerMessage',
+					'Dialog',
+					{ dialog: 'Ante', game: pData.game, anteAmount: pData.anteAmount },
+					(data) => {
+						// if promise was resolved/reject (should only happen on time-out), ignore any response
+						if (acceptResponses) {
+							// expect uuid: uuid, action: pay|sitout, buyinAmount: amount
+							if (data.buyinAmount) {
+								Accounting.debitPlayer('buyin', data.uuid, data.buyinAmount);
+								Accounting.creditPlayer('chips', data.uuid, data.buyinAmount);
+							}
+							if (data.action === 'pay') {
+								Accounting.creditPot(data.uuid, pData.anteAmount);
+								Accounting.debitPlayer('chips', data.uuid, data.buyinAmount);
+								Players.setStatusPartPlayer(data.uuid, 'in');
+							} else if (data.action === 'sitout') {
+							}
+							el.resolve(data.action);
+						}
+					}
+				);
+
+				el.promise = new Promise((resolve, reject) => {
+					el.resolve = resolve;
+					setTimeout(() => reject('timeout'), 30000);
+				});
+				promises.push(el.promise);
+			}
+		});
+		Promise.all(promises).then(() => {
+			Step2();
+		});
+	};
 }
 
 // OK
@@ -58,24 +90,66 @@ function Step2() {
 }
 
 function getPlayer(uuid) {
-	return partPlayers[partPlayers.find((e) => e.uuid === uuid)];
+	return Players.partPlayers[Players.partPlayers.find((e) => e.uuid === uuid)];
 }
 
-//Start Game
-// Freeze Players
-// Participating Players table
+this.getFirstDealer = function () {
+	this.hasBegun = false;
+	this.start = async function (data, cb) {
+		try {
+			winston.info(`in startTable`);
 
-// Request Ante
+			let card;
+			let aceFound = false;
+
+			Deck.shuffle();
+
+			//Round robin until Ace is found
+			while (!aceFound) {
+				for (let i = 0; i < Players.players.length; i++) {
+					let player = Players.players[i];
+					await sleep(300);
+					card = Deck.draw();
+					player.cards.push(card.short);
+					io.to(data.sid).emit('PokerMessage', 'MyCards', { cards: player.cards });
+					io.emit('PokerMessage', 'GameStatus', {
+						message: `${player.name} drew the ${card.long}`,
+					});
+					if (card.short.substr(1) === '14') {
+						aceFound = true;
+						player.dealer = true;
+						io.emit('PokerMessage', 'GameStatus', {
+							message: `We have a dealer: ${player.name}`,
+						});
+						Round.start();
+						console.log(`before emit uuid = ${player.uuid}`);
+						console.log(`before emit socketid = ${player.sockid}`);
+
+						emitClient(
+							player.sockid,
+							'PokerMessage',
+							'Dialog',
+							{
+								dialog: 'Dealer',
+								chips: player.chips,
+							},
+							(data) => {}
+						);
+						break;
+					}
+				}
+			}
+		} catch (e) {
+			winston.error('in startTable %s', e);
+			throw e;
+		}
+	};
+};
+
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 //
-// Ante Amount Specified
 
-// One minute timer
-
-// {msgType: "setAnte", amount amt}
-// { msgType: "payAnte", uuid: uuid }
-// Receive messages "Ante-Paid"
-//                  "Ante-Out"
-
-// function sleep(ms) {
-// 	return new Promise((resolve) => setTimeout(resolve, ms));
-// }
+module.exports = { _Round };

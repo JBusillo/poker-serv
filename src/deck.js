@@ -1,21 +1,26 @@
 import winston from 'winston';
 import { PokerDeck } from './pokerdeck';
 import { players } from './players';
+import { io } from './server';
 
 let deck = [];
 let deckPointer = 0;
 
-export function init() {
-	deck = shuffle();
+// export function init() {
+// 	deck = shuffle();
 
-	let disp = '';
-	deck.forEach((cd) => {
-		disp = disp + cd + ':';
-	});
-	winston.info('Shuffled Deck: %s', disp);
-}
+// 	let disp = '';
+// 	deck.forEach((cd) => {
+// 		disp = disp + cd + ':';
+// 	});
+// 	winston.info('Shuffled Deck: %s', disp);
+// }
 
 export function shuffle() {
+	io.emit('PokerMessage', 'GameStatus', {
+		message: `Shuffling the deck...`,
+	});
+
 	let array = [...PokerDeck];
 	let m = array.length,
 		t,
@@ -59,6 +64,7 @@ export function draw() {
 	let card = {
 		short: deck[deckPointer],
 		long: getCardLongDescription(deck[deckPointer]),
+		mini: getCardMiniDescription(deck[deckPointer]),
 	};
 	deckPointer++;
 	return card;
@@ -124,6 +130,21 @@ function getCardLongDescription(short) {
 			desc += 'Spades';
 			break;
 	}
-
 	return desc;
+}
+
+function getCardMiniDescription(short) {
+	let desc = '';
+	let rank = '23456789JQKA'[Number(short.substr(1))];
+	switch (short.substr(0, 1)) {
+		case 'C':
+			return rank + '♣';
+		case 'D':
+			return rank + '♦';
+		case 'H':
+			return rank + '♥';
+		case 'S':
+			return rank + '♠';
+	}
+	return '??';
 }

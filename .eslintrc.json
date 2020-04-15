@@ -8,7 +8,7 @@
 		"lines-around-comment": "off",
 		"no-console": "off",
 		"brace-style": "off",
-		"no-unused-vars": "warn",
+		"no-unused-vars": "off",
 		"new-cap": "off"
 	},
 	"extends": "eslint-config-synacor"
