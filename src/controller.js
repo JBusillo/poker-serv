@@ -1,15 +1,13 @@
 import { io } from './server';
 import { v4 as uuidv4 } from 'uuid';
-import { _Players, _Player } from './players';
-import { _Table } from './table';
-import { _Accounting } from './accounting';
-import { _Round } from './round';
 import winston from 'winston';
 
-export let Players = new _Players();
-export let Table = new _Table();
-export let Accounting = new _Accounting();
-export let Round = new _Round();
+import { PlayersInit } from './players';
+import { AccountingInit } from './accounting';
+import Round from './round';
+
+export let Players = null;
+export let Accounting = null;
 let SockMap = new Map();
 
 export function emitClient(sid, ...args) {
@@ -19,10 +17,12 @@ export function emitClient(sid, ...args) {
 
 export function initCommunication() {
 	winston.info(`initCommunication - Initializing`);
+	Players = PlayersInit();
+	Accounting = AccountingInit();
 	// add the channel (notify when 'players' has changed
 	io.on('connection', (socket) => {
+		SockMap.set(socket.client.id, socket);
 		socket.on('ClientMessage', (indata, fn) => {
-			SockMap.set(socket.client.id, socket);
 			let data = { ...indata, sid: socket.client.id };
 			winston.info(`initCommunication/Client Message ${JSON.stringify(data)}`);
 			switch (data.msgType) {
@@ -33,13 +33,13 @@ export function initCommunication() {
 					Players.ready(data, fn);
 					break;
 				case 'beginTable':
-					Table.start(data, fn);
+					Round(data, fn);
 					break;
 				case 'startRound':
-					Table.start(data, fn);
+					Round(data, fn);
 					break;
 				case 'dealerPass':
-					Table.start(data, fn);
+					Round(data, fn);
 					break;
 				case 'doBuyIn':
 					Accounting.buyin(data, fn);

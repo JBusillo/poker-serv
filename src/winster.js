@@ -1,8 +1,8 @@
 import winston from 'winston';
 const { printf, splat } = winston.format;
 
-export function winster() {
-	winston.configure({
+export async function winster() {
+	await winston.configure({
 		level: 'debug',
 		//		defaultMeta: { service: 'user-service' },
 		transports: [

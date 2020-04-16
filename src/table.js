@@ -30,7 +30,10 @@ function _Table() {
 					await sleep(300);
 					card = Deck.draw();
 					player.cards.push(card.short);
-					io.to(data.sid).emit('PokerMessage', 'MyCards', { cards: player.cards });
+					emitClient(player.sockid, 'PokerMessage', 'MyCards', {
+						cards: player.cards,
+					});
+
 					io.emit('PokerMessage', 'GameStatus', {
 						message: `${player.name} drew the ${card.long}`,
 					});

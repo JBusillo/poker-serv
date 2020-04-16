@@ -1,61 +1,72 @@
 import { io } from './server';
 import { v4 as uuidv4 } from 'uuid';
-import { Table, Players } from './controller';
+import { Players, emitClient } from './controller';
 import winston from 'winston';
 
-function _Player(playerObj) {
-	this.uuid = playerObj.uuid;
-	this.name = playerObj.name;
-	this.sockid = playerObj.sockid;
-	this.chips = 0;
-	this.buyin = 0;
-	this.dealer = false;
-	this.status = 'wait';
-	this.onBreak = false;
-	this.cards = [];
-	this.actions = [];
+function PlayerInit(overrides) {
+	let player = {
+		uuid: null,
+		name: null,
+		sockid: null,
+		chips: 0,
+		buyin: 0,
+		dealer: false,
+		status: 'wait',
+		onBreak: false,
+		cards: [],
+		actions: [],
+		...overrides,
+	};
+
+	player.refresh = function () {
+		io.emit(player.sockid, 'PlayerStatus', { players: Players, options: { hasBegun: false } });
+	};
+
+	return player;
 }
 
-function _Players() {
-	this.players = [];
-	this.partPlayers = [];
-	// Round Robin "next" on partPlayers
-	this.partPlayers.next = function (uuid) {
-		let ix = this.partPlayers.findIndex((e) => e.uuid === uuid);
-		return this.partPlayers[ix >= this.partPlayers.length ? 0 : ix];
-	};
-	this.add = function (data, cb) {
+// let playerDefault = {
+// 	uuid: null,
+// 	name: null,
+// 	sockid: null,
+// 	chips: 0,
+// 	buyin: 0,
+// 	dealer: false,
+// 	status: 'wait',
+// 	onBreak: false,
+// 	cards: [],
+// 	actions: [],
+// };
+
+export function PlayersInit() {
+	winston.info(`start of PlayersInit`);
+	let Players = [];
+
+	Players.add = function (data, cb) {
 		try {
 			winston.info(`'addPlayer ${data}`);
 			let player;
 
 			// Generate uuid if none passed
-			let uuid = data.uuid;
-			if (!uuid) uuid = uuidv4();
+			let uuid = data.uuid ? data.uuid : uuidv4();
 
-			player = this.find(uuid);
+			player = Players.getPlayerByUuid(uuid);
 
 			if (!player) {
 				winston.info(`'adding player to table, uuid = ${uuid}`);
-				player = new _Player({
-					uuid,
-					name: data.player,
-					sockid: data.sid,
-				});
-
-				this.players.push(player);
+				player = PlayerInit({ uuid, name: data.player, sockid: data.sid });
+				Players.push(player);
 			}
-			this.refreshUI();
+
+			Players.refreshAll();
 
 			io.emit('PokerMessage', 'GameStatus', {
 				message: `${player.name} joined the table!!!`,
 			});
 
-			io.to(data.sid).emit('PokerMessage', 'MyActions', {
+			emitClient(player.sockid, 'PokerMessage', 'MyActions', {
 				buttons: [{ id: 'myStart', text: 'StartGame', bguid: 'testing' }],
 			});
-
-			//			io.emit(uuid, 'MyActions', { buttons: [{ id: 'myStart', text: 'StartGame', bguid: 'testing' }] });
 
 			cb({ uuid });
 		} catch (e) {
@@ -63,51 +74,63 @@ function _Players() {
 		}
 	};
 
-	this.get = function () {
-		return this.players;
+	// function _Players() {
+	// 	this.players = [];
+	// 	this.partPlayers = [];
+	// 	// Round Robin "next" on partPlayers
+	// 	this.partPlayers.next = function (uuid) {
+	// 		let ix = this.partPlayers.findIndex((e) => e.uuid === uuid);
+	// 		return this.partPlayers[ix >= this.partPlayers.length ? 0 : ix];
+	// 	};
+
+	Players.refreshAll = function () {
+		io.emit('PokerMessage', 'PlayerStatus', { players: Players, options: { hasBegun: false } });
 	};
 
-	this.refreshUI = function () {
-		io.emit('PokerMessage', 'PlayerStatus', { players: this.players, options: { hasBegun: Table.hasBegun } });
+	Players.refreshOne = function (player) {
+		io.emit(player.sockid, 'PlayerStatus', { players: Players, options: { hasBegun: false } });
 	};
 
-	this.each = async function (cb) {
-		let p = Players.get();
+	Players.getNextActivePlayer = function () {
+		winston.error('Todo: getNextActivePlayer');
+		return Players[0];
+		// return player
+	};
+
+	Players.each = async function (cb) {
+		let p = Players;
 		for (let i = 0; i < p.length; i++) {
 			let res = await cb(p[i]);
 			if (res === 'break') break;
 		}
 	};
 
-	this.find = function (uuid) {
-		return this.players.find((e) => e.uuid === uuid);
+	Players.getPlayerByUuid = function (uuid) {
+		return Players.find((e) => e.uuid === uuid);
 	};
 
-	this.freeze = function () {
-		let foundDealer = false;
-		let before = [];
-		let after = [];
-		this.each((el) => {
-			if (!el.onBreak) {
-				let player = { uuid: el.uuid, name: el.name, chips: el.chips, cards: [], status: 'ante-up' };
-				player.uuid = el.uuid;
-				if (el.dealer) {
-					player.status = 'in';
-					foundDealer = true;
+	Players.freeze = function freeze() {
+		// let foundDealer = false;
+		// let before = [];
+		// let after = [];
+		Players.each(
+			(player) => {
+				if (!player.onBreak) {
+					player.status = player.dealer ? 'in' : 'wait-dealer';
 				}
-				if (foundDealer) {
-					before.push(player);
-				} else {
-					after.push(player);
-				}
+				// if (foundDealer) {
+				// 	before.push(player);
+				// } else {
+				// 	after.push(player);
+				// }
 			}
-			this.partPlayers = [...before, ...after];
-		});
+			// this.partPlayers = [...before, ...after];
+		);
 	};
+	winston.info(`return of PlayersInit`);
+	return Players;
 }
 
 function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-module.exports = { _Players, _Player };

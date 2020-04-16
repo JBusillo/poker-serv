@@ -10,7 +10,7 @@ export let server;
 export let io;
 
 export async function startUp() {
-	winster();
+	await winster();
 
 	app = await http.createServer(() => {});
 	io = await SocketIo(app);
@@ -18,10 +18,10 @@ export async function startUp() {
 	winston.info('Node Version');
 	winston.info('Current Directory is %s', __dirname);
 
-	app.listen(config.port);
-	winston.info(`Listening on ${config.port}`);
-
 	//	process.exit(2);
 
 	initCommunication();
+
+	app.listen(config.port);
+	winston.info(`Listening on ${config.port}`);
 }

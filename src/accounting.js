@@ -1,12 +1,38 @@
-function _Accounting() {
-	this.pot = 0;
-	this.debit = function (data, cb) {};
-	this.credit = function (data, cb) {};
-	this.buyin = function (data, cb) {
-		this.debit({ account: 'buyin', uuid: data.uuid, amount: data.amount });
-		this.credit({ account: 'chips', uuid: data.uuid, amount: data.amount });
-		cb();
-	};
-}
+import { io } from './server';
+import winston from 'winston';
+import { Players } from './controller';
 
-module.exports = { _Accounting };
+export function AccountingInit() {
+	let Accounting = new Map();
+	Accounting.Pot = 0;
+	// debitPlayer -- data: {uuid, amount}
+	Accounting.debitPlayer = function (data, cb) {
+		let player = Players.getPlayerByUuid(data.uuid);
+		player.buyin -= data.amount;
+	};
+
+	Accounting.debitPlayerChips = function (data, cb) {
+		let player = Players.getPlayerByUuid(data.uuid);
+		player.chips -= data.amount;
+	};
+	Accounting.creditPlayerChips = function (data, cb) {
+		let player = Players.getPlayerByUuid(data.uuid);
+		player.chips += data.amount;
+	};
+
+	Accounting.debitPot = function (data, cb) {
+		Accounting.pot -= data.amount;
+	};
+	Accounting.creditPot = function (data, cb) {
+		Accounting.pot += data.amount;
+	};
+
+	Accounting.buyin = function (data, cb) {
+		Accounting.debitPlayer({ uuid: data.uuid, amount: data.amount });
+		Accounting.creditPlayerChips({ uuid: data.uuid, amount: data.amount });
+		let player = Players.getPlayerByUuid(data.uuid);
+		cb && cb({ status: 'OK', chips: player.chips });
+	};
+
+	return Accounting;
+}
