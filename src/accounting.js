@@ -31,7 +31,10 @@ export function AccountingInit() {
 		Accounting.debitPlayer({ uuid: data.uuid, amount: data.amount });
 		Accounting.creditPlayerChips({ uuid: data.uuid, amount: data.amount });
 		let player = Players.getPlayerByUuid(data.uuid);
-		cb && cb({ status: 'OK', chips: player.chips });
+		if (cb) {
+			Players.refreshAll();
+			cb({ status: 'OK', chips: player.chips });
+		}
 	};
 
 	return Accounting;

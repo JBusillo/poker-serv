@@ -18,8 +18,10 @@ function PlayerInit(overrides) {
 		...overrides,
 	};
 
-	player.refresh = function () {
-		io.emit(player.sockid, 'PlayerStatus', { players: Players, options: { hasBegun: false } });
+	player.setStatus = function (stat, refresh) {
+		winston.debug(`player.setStatus ${stat} ${refresh}`);
+		player.status = stat;
+		if (refresh) Players.refreshAll();
 	};
 
 	return player;
@@ -97,35 +99,25 @@ export function PlayersInit() {
 		// return player
 	};
 
-	Players.each = async function (cb) {
-		let p = Players;
-		for (let i = 0; i < p.length; i++) {
-			let res = await cb(p[i]);
-			if (res === 'break') break;
-		}
-	};
+	// Players.each = function (cb) {
+	// 	let p = Players;
+	// 	for (let i = 0; i < p.length; i++) {
+	// 		let res = await cb(p[i]);
+	// 		if (res === 'break') break;
+	// 	}
+	// };
 
 	Players.getPlayerByUuid = function (uuid) {
 		return Players.find((e) => e.uuid === uuid);
 	};
 
 	Players.freeze = function freeze() {
-		// let foundDealer = false;
-		// let before = [];
-		// let after = [];
-		Players.each(
-			(player) => {
-				if (!player.onBreak) {
-					player.status = player.dealer ? 'in' : 'wait-dealer';
-				}
-				// if (foundDealer) {
-				// 	before.push(player);
-				// } else {
-				// 	after.push(player);
-				// }
+		Players.forEach((player) => {
+			if (player.status !== 'On Break') {
+				player.setStatus('Ready');
 			}
-			// this.partPlayers = [...before, ...after];
-		);
+			Players.refreshAll();
+		});
 	};
 	winston.info(`return of PlayersInit`);
 	return Players;

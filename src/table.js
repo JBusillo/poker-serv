@@ -1,75 +1,194 @@
+import * as Deck from 'deck';
 import { io } from './server';
-import winston from 'winston';
-import { Players, Round, emitClient } from './controller';
-import * as Deck from './deck';
+import { Players, emitClient, Accounting } from 'controller';
 
-function _Table() {
-	this.hasBegun = false;
-	this.start = async function (data, cb) {
-		try {
-			winston.info(`in startTable`);
+let tablePlayers = [];
+let tableCards = [];
+let sumOfRaises = 0;
 
-			let card;
+export function reset() {
+	// Clear Player cards
+	Players.forEach((p) => (p.cards = []));
 
-			io.emit('PokerMessage', 'GameStatus', {
-				message: `Shuffling the deck...`,
-			});
+	// Clear Table cards
+	tableCards = [];
 
-			//clear everyone's cards!!!
-			Players.each((player) => {
-				player.cards = [];
-			});
+	// Creates a mini-table of players (uuid only)
+	// in dealing order (left of dealer, clockwise to
+	// and including) the dealer
+	let before = [];
+	let after = [];
+	let foundDealer = false;
 
-			Deck.shuffle();
-			let aceFound = false;
-
-			//Round robin until Ace is found
-			while (!aceFound) {
-				for (let i = 0; i < Players.players.length; i++) {
-					let player = Players.players[i];
-					await sleep(300);
-					card = Deck.draw();
-					player.cards.push(card.short);
-					emitClient(player.sockid, 'PokerMessage', 'MyCards', {
-						cards: player.cards,
-					});
-
-					io.emit('PokerMessage', 'GameStatus', {
-						message: `${player.name} drew the ${card.long}`,
-					});
-					if (card.short.substr(1) === '14') {
-						aceFound = true;
-						player.dealer = true;
-						io.emit('PokerMessage', 'GameStatus', {
-							message: `We have a dealer: ${player.name}`,
-						});
-						Round.start();
-						console.log(`before emit uuid = ${player.uuid}`);
-						console.log(`before emit socketid = ${player.sockid}`);
-
-						emitClient(
-							player.sockid,
-							'PokerMessage',
-							'Dialog',
-							{
-								dialog: 'Dealer',
-								chips: player.chips,
-							},
-							(data) => {}
-						);
-						break;
-					}
+	Players.forEach((player) => {
+		if (player.status === 'in')
+			if (foundDealer) {
+				before.push({ uuid: player.uuid });
+			} else {
+				after.push(player.uuid);
+				if (player.dealer === true) {
+					foundDealer = true;
 				}
 			}
-		} catch (e) {
-			winston.error('in startTable %s', e);
-			throw e;
+	});
+
+	tablePlayers = [...before, ...after];
+}
+
+export function dealToPlayers(count) {
+	let c = count;
+	while (c-- > 0) {
+		tablePlayers.forEach((tPlayer) => {
+			let player = Players.getPlayerByUuid(tPlayer.uuid);
+			if (player.status === 'in') {
+				player.cards.push(Deck.draw());
+				// Show updated cards to player
+				emitClient(player.sockid, 'PokerMessage', 'MyCards', {
+					cards: player.cards,
+				});
+				// Tell everyone that a cards was dealt to player
+				io.emit('PokerMessage', 'GameStatus', {
+					message: `Dealt card to ${player.name}`,
+				});
+				waitABit(300);
+			}
+		});
+	}
+}
+export function bettingRound() {
+	// add/reset any prior raise data
+	tablePlayers.forEach((player) => {
+		player.raise = 0;
+		player.paid = 0;
+	});
+
+	sumOfRaises = 0;
+	// just two rotations possible
+	// no raises during second rotation
+	// no rotation if all paid up
+
+	//FIRST ROTATION - Check/Raise/See/See & Raise/Fold
+	tablePlayers.forEach((tPlayer) => {
+		let dialog = null;
+		let player = Players.getPlayerByUuid(tPlayer.uuid);
+		if (player.status === 'in') {
+			if (sumOfRaises === 0) {
+				dialog = 'CheckRaise';
+			} else {
+				dialog = 'SeeRaiseFold';
+			}
+			let result = BetDialog(player, dialog);
+
+			processBetResult(player, result);
 		}
-	};
+	});
+
+	//SECOND ROTATION - See/Fold  (only for those owing!)
+	tablePlayers.forEach((tPlayer) => {
+		let dialog = null;
+		let player = Players.getPlayerByUuid(tPlayer.uuid);
+		if (player.status === 'in' && sumOfRaises > player.paid) {
+			let result = BetDialog(player, 'SeeFold');
+
+			processBetResult(player, result);
+		}
+	});
 }
 
-function sleep(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+function processBetResult(player, result) {
+	let message;
+	let amount;
+	let seeAmount;
+	switch (result.action) {
+		case 'timeout':
+			message = `${player.name} didn't respond in time.  Auto-fold invoked!`;
+			player.setStatus('fold');
+			player.setLastAcion('fold (timeout)');
+			break;
+		case 'check':
+			message = `${player.name} checked`;
+			player.setLastAcion('check');
+			break;
+		case 'fold':
+			message = `${player.name} folded!!`;
+			player.setStatus('fold');
+			player.setLastAcion('check');
+			break;
+		case 'see':
+			player.paid += amount = sumOfRaises - player.paid;
+			Accounting.creditPot({ amount });
+			Accounting.debitPlayerChips({ uuid: player.uuid, amount });
+			player.setLastAcion('see');
+			message = `${player.name} sees (accepts) the raise, adds ${formatAmount(amount)} to the pot`;
+			break;
+		case 'raise':
+			player.paid = sumOfRaises += amount = result.raiseAmount;
+			Accounting.creditPot({ amount });
+			Accounting.debitPlayerChips({ uuid: player.uuid, amount });
+			player.setLastAcion('raise');
+			message = `${player.name} raises for ${formatAmount(amount)}`;
+			break;
+		case 'see-raise':
+			seeAmount = sumOfRaises - player.paid;
+			player.paid = sumOfRaises += amount = result.raiseAmount;
+			Accounting.creditPot({ amount });
+			Accounting.debitPlayerChips({ uuid: player.uuid, amount });
+			player.setLastAcion('see/raise');
+			message = `${player.name} sees the raise of ${seeAmount} and raises ${amount} more!`;
+			break;
+		case 'side-pot':
+			player.paid += amount = player.chips;
+			Accounting.creditPot({ amount });
+			Accounting.debitPlayerChips({ uuid: player.uuid, amount });
+			player.setStatus('side-pot');
+			player.setLastAcion('side-pot');
+			message = `${player.name} is all-in, created a side-pot.  All-in amount is ${amount}`;
+			break;
+		default:
+			console.log('Error');
+	}
+	// Show everyone what this player did
+	io.emit('PokerMessage', 'GameStatus', {
+		message,
+	});
+	Players.refreshAll();
 }
 
-module.exports = { _Table };
+export async function calculateWinner(dealer, count) {}
+export async function showCards(dealer, count) {}
+export async function chanceToShow(dealer, count) {}
+
+async function BetDialog(player, action) {
+	let promise = new Promise((resolve, reject) => {
+		emitClient(
+			player.sockid,
+			'PokerMessage',
+			'Dialog',
+			{
+				dialog: 'Bet',
+
+				chips: player.chips,
+				stayAmount: sumOfRaises,
+			},
+			//CheckRaise: action: check/raise
+			//SeeRaiseFold: action see/see-raise/fold/side-pot
+
+			(data) => {
+				resolve(data);
+			}
+		);
+	});
+	return await promise;
+}
+
+function formatAmount(amount) {
+	return `$${(amount / 100).toFixed(2)}`;
+}
+
+async function waitABit(ms) {
+	let promise = new Promise((resolve, reject) => {
+		setTimeout(() => resolve(), ms);
+	});
+
+	await promise; // wait until the promise resolves (*)
+}

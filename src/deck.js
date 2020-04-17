@@ -6,16 +6,6 @@ import { io } from './server';
 let deck = [];
 let deckPointer = 0;
 
-// export function init() {
-// 	deck = shuffle();
-
-// 	let disp = '';
-// 	deck.forEach((cd) => {
-// 		disp = disp + cd + ':';
-// 	});
-// 	winston.info('Shuffled Deck: %s', disp);
-// }
-
 export function shuffle() {
 	io.emit('PokerMessage', 'GameStatus', {
 		message: `Shuffling the deck...`,
@@ -49,12 +39,13 @@ export function shuffle() {
 	return array;
 }
 
-export function deal(numberOfCards) {
-	burn();
+export function dealToPlayers(numberOfCards) {
 	players.forEach((element) => {});
 	// find dealer
 	// circular deal, dealer+1 around to dealer
 }
+
+export function dealToTable(numberOfCards) {}
 
 function burn() {
 	draw();

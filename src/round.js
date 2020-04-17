@@ -2,6 +2,7 @@ import { Accounting, emitClient, Players } from './controller';
 import { io } from './server';
 import winston from 'winston';
 import * as Deck from './deck';
+import texas from './texas';
 
 let dealer = null;
 let dealerData = null;
@@ -14,9 +15,11 @@ export default async function Round(pData, cb) {
 
 	while (!haveDealer) {
 		//clear everyone's cards!!!
-		Players.each((player) => {
-			player.cards = [];
-		});
+		// Players.each((player) => {
+		// 	player.cards = [];
+		// });
+
+		Players.forEach((p) => (p.cards = []));
 
 		if (dealer) {
 			dealer = Players.getNextActivePlayer();
@@ -30,6 +33,7 @@ export default async function Round(pData, cb) {
 		await DealerDialog(dealer).then((data) => {
 			winston.debug('DealerDialog/Promise/Resolve');
 			if (data.accept) {
+				dealer.setStatus('in', true);
 				dealerData = data;
 				haveDealer = true;
 			}
@@ -39,16 +43,46 @@ export default async function Round(pData, cb) {
 	Accounting.debitPlayerChips({ uuid: dealer.uuid, amount: dealerData.anteAmount });
 	Accounting.creditPot({ amount: dealerData.anteAmount });
 
-	await getAntes().then(() => {
+	await getAntes().then((e) => {
 		winston.debug('getAntes/Promise/Resolve');
 	});
+
+	// "Texas Hold 'em",
+	// "Obama-ha",
+	// "Obama-ha High Chicago",
+	// "Obama-ha Low Chicago",
+	// "Pineapple",
+	// "Five Card Draw",
+	// "Five Card Stud",
+	// "Seven Card Stud"
+
+	switch (dealerData.game) {
+		case "Texas Hold 'em":
+			texas();
+			break;
+		case 'Obama-ha':
+			break;
+		case 'Obama-ha High Chicago':
+			break;
+		case 'Obama-ha Low Chicago':
+			break;
+		case 'Pineapple':
+			break;
+		case 'Five Card Draw':
+			break;
+		case 'Five Card Stud':
+			break;
+		case 'Seven Card Stud':
+			break;
+
+		default:
+			console.log(`Invalid Game: ${dealerData.game}`);
+	}
 }
 
 // OK
 
-function Step2() {
-	console.log('we are in Step 2');
-}
+function Step2() {}
 
 async function DealerDialog(dealer) {
 	let promise = new Promise((resolve, reject) => {
@@ -114,37 +148,46 @@ async function getAntes() {
 	Players.forEach((player) => {
 		if (player.uuid !== dealer.uuid) {
 			let promise = new Promise((resolve, reject) => {
-				setTimeout(() => reject('timeout'), 30000);
-				io.to(player.sockid).emit(
+				setTimeout(() => {
+					player.status = 'On Break';
+					resolve({ player, result: 'timeout' });
+				}, 30000);
+
+				player.setStatus('Ante');
+				emitClient(
+					player.sockid,
 					'PokerMessage',
 					'Dialog',
 					{ dialog: 'Ante', game: dealerData.game, anteAmount: dealerData.anteAmount },
 					(data) => {
 						// if promise was resolved/reject (should only happen on time-out), ignore any response
 						if (acceptResponses) {
-							// expect uuid: uuid, action: pay|sitout, buyinAmount: amount
-							// if (data.buyinAmount) {
-							// 	Accounting.debitPlayer('buyin', data.uuid, data.buyinAmount);
-							// 	Accounting.creditPlayer('chips', data.uuid, data.buyinAmount);
-							// }
-							if (data.action === 'pay') {
-								Accounting.creditPot(data.uuid, dealerData.anteAmount);
-								Accounting.debitPlayer('chips', data.uuid, data.buyinAmount);
-								player.status = 'in';
-							} else if (data.action === 'sitout') {
-								player.status = 'onBreak';
+							switch (data.action) {
+								case 'pay':
+									Accounting.creditPot({ amount: dealerData.anteAmount });
+									Accounting.debitPlayerChips({ uuid: player.uuid, amount: dealerData.anteAmount });
+									player.setStatus('in', true);
+									break;
+								case 'pass':
+									player.setStatus('Skip Round', true);
+									break;
+								case 'break':
+									player.setStatus('On Break', true);
+									break;
+								default:
 							}
-							player.resolve(data.action);
+
+							resolve({ player, result: data.action });
 						}
 					}
 				);
 			});
+			Players.refreshAll();
 			promises.push(promise);
 		}
 	});
 
-	await Promise.all(promises);
-	return;
+	return await Promise.all(promises);
 }
 
 async function sleep(ms) {
