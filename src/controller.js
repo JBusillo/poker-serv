@@ -6,7 +6,7 @@ import { PlayersInit } from './players';
 import { AccountingInit } from './accounting';
 import Round from './round';
 
-export let Players = null;
+export let Players = [];
 export let Accounting = null;
 let SockMap = new Map();
 
@@ -17,7 +17,8 @@ export function emitClient(sid, ...args) {
 
 export function initCommunication() {
 	winston.info(`initCommunication - Initializing`);
-	Players = PlayersInit();
+	let p = PlayersInit();
+	Players = Object.create(p);
 	Accounting = AccountingInit();
 	// add the channel (notify when 'players' has changed
 	io.on('connection', (socket) => {

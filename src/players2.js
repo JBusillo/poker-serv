@@ -12,7 +12,6 @@ function PlayerInit(overrides) {
 		buyin: 0,
 		dealer: false,
 		status: 'wait',
-		lastAction: null,
 		onBreak: false,
 		cards: [],
 		actions: [],
@@ -25,10 +24,15 @@ function PlayerInit(overrides) {
 		if (refresh) Players.refreshAll();
 	};
 
-	player.setLastAction = function (action) {
-		player.lastAction = action;
-	};
 	return player;
+}
+
+export function initPlayers() {
+	let _Players = [];
+	_Players.add = function (player) {
+		this.push(player);
+	};
+	return _Players;
 }
 
 export function PlayersInit() {

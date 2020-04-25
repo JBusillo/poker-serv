@@ -2,36 +2,38 @@ import { Accounting, emitClient, Players } from './controller';
 import { io } from './server';
 import winston from 'winston';
 import * as Deck from './deck';
-import texas from './texas';
+import Texas from './texas';
 
 let dealer = null;
-let dealerData = null;
+export let dealerData = null;
 
 export default async function Round(pData, cb) {
 	let haveDealer = false;
 	// freeze creates an array with participating players (not onbreak), with dealer first
 	// pPlayer    getPartPlayer(uuid)  setStatusPartPlayer
+	console.log('freeze');
 	Players.freeze();
 
+	console.log(`a0 ${JSON.stringify(Players[0].name)}`);
+
 	while (!haveDealer) {
-		//clear everyone's cards!!!
-		// Players.each((player) => {
-		// 	player.cards = [];
-		// });
+		for (let i = 0; i < Players.length; i++) {
+			Players[i].cards = [];
+		}
 
-		Players.forEach((p) => (p.cards = []));
-
+		console.log('b1');
 		if (dealer) {
 			dealer = Players.getNextActivePlayer();
 		} else {
+			winston.debug('round.js - await getFirstDealer');
 			await getFirstDealer().then((ret) => {
 				winston.debug('getFirstDealer/Promise/Resolve');
 				dealer = ret;
 			});
 		}
-
+		winston.debug('round.js - await DealerDialog');
 		await DealerDialog(dealer).then((data) => {
-			winston.debug('DealerDialog/Promise/Resolve');
+			winston.debug('round.js - DealerDialog resolved');
 			if (data.accept) {
 				dealer.setStatus('in', true);
 				dealerData = data;
@@ -42,23 +44,17 @@ export default async function Round(pData, cb) {
 	//{ account: 'accept (true/false) buyin', uuid: data.uuid, amount: data.amount }
 	Accounting.debitPlayerChips({ uuid: dealer.uuid, amount: dealerData.anteAmount });
 	Accounting.creditPot({ amount: dealerData.anteAmount });
+	console.log(`a1 ${JSON.stringify(Players[0].name)}`);
 
+	winston.debug('round.js - await getAntes');
 	await getAntes().then((e) => {
-		winston.debug('getAntes/Promise/Resolve');
+		winston.debug('round.js - getAntes resolved');
 	});
-
-	// "Texas Hold 'em",
-	// "Obama-ha",
-	// "Obama-ha High Chicago",
-	// "Obama-ha Low Chicago",
-	// "Pineapple",
-	// "Five Card Draw",
-	// "Five Card Stud",
-	// "Seven Card Stud"
+	console.log(`a2 ${JSON.stringify(Players[0].name)}`);
 
 	switch (dealerData.game) {
 		case "Texas Hold 'em":
-			texas();
+			Texas();
 			break;
 		case 'Obama-ha':
 			break;
@@ -153,7 +149,7 @@ async function getAntes() {
 					resolve({ player, result: 'timeout' });
 				}, 30000);
 
-				player.setStatus('Ante');
+				player.setStatus('Ante', true);
 				emitClient(
 					player.sockid,
 					'PokerMessage',

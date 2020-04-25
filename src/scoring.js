@@ -1,4 +1,4 @@
-function score(cards) {
+export default function score(cards) {
 	console.log('---------------------------------------------------------');
 	console.log(cards);
 	let ranksAceHigh = Array.from(cards, (x) => x.substr(1)).sort();

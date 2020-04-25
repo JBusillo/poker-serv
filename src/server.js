@@ -18,8 +18,6 @@ export async function startUp() {
 	winston.info('Node Version');
 	winston.info('Current Directory is %s', __dirname);
 
-	//	process.exit(2);
-
 	initCommunication();
 
 	app.listen(config.port);

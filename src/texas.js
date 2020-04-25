@@ -1,62 +1,54 @@
-import { Accounting, emitClient, Players } from './controller';
+import { Players } from './controller';
 import * as Deck from './deck';
 import * as Table from './table';
+import winston from 'winston';
 
-export default function Texas() {
-	// Clear Cards
-	Players.forEach((p) => (p.cards = []));
+export default async function Texas() {
+	winston.debug('texas.js - beginning');
 
 	// Reset Table
-	Table.reset();
+	Table.prepareForNewRound();
 
 	// Shuffle Deck
+	winston.debug('texas.js - Deck.shuffle()');
 	Deck.shuffle();
 
 	// Cut Deck
 	// await cutDeck();
 
-	Deck.dealToPlayers(2);
-	Table.bettingRound();
+	winston.debug('texas.js - Table.dealToPlayers(2)');
+	await Table.dealToPlayers(2);
+
+	winston.debug('texas.js - Table.bettingRound()');
+	await Table.bettingRound();
 
 	//Flop
 	if (Players.activeCount > 1) {
 		Deck.burn();
-		Deck.dealToTable(3);
-		Table.bettingRound();
+		await Deck.dealToTable(3);
+		await Table.bettingRound();
 	}
 
 	//Turn
 	if (Players.activeCount > 1) {
 		Deck.burn();
-		Deck.dealToTable(1);
-		Table.bettingRound();
+		await Deck.dealToTable(1);
+		await Table.bettingRound();
 	}
 
 	//River
 	if (Players.activeCount > 1) {
 		Deck.burn();
-		Deck.dealToTable(1);
-		Table.bettingRound();
+		await Deck.dealToTable(1);
+		await Table.bettingRound();
 	}
 
-	Table.calculateWinner();
+	await Table.showCards();
 
-	Table.showCards();
+	await Table.calculateWinner();
 
-	Table.chanceToShow();
+	//	Table.chanceToShow();
 }
-// remove all cards
-// shuffle
-// cut
-// deal round (2)
-// bet
-// burn, deal table 3
-// bet
-// burn, deal table 1
-// bet
-// burn, deal table 1
-// bet
-// round (show)
 
 // obama-ha / high/low chicago
 

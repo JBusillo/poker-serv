@@ -39,11 +39,16 @@ export function shuffle() {
 	return array;
 }
 
-export function dealToPlayers(numberOfCards) {
-	players.forEach((element) => {});
-	// find dealer
-	// circular deal, dealer+1 around to dealer
-}
+// export function dealToPlayers(tablePlayers, numberOfCards ) {
+// 	for (let i = numberOfCards; i < numberOfCards; i++) {
+// 	while (numberOfCards++ <)
+// 	tablePlayers.forEach((tp) => {
+
+// 	});
+// }
+// 	// find dealer
+// 	// circular deal, dealer+1 around to dealer
+// }
 
 export function dealToTable(numberOfCards) {}
 
