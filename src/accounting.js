@@ -10,7 +10,6 @@ export function AccountingInit() {
 		let player = Players.getPlayerByUuid(data.uuid);
 		player.buyin -= data.amount;
 	};
-
 	Accounting.debitPlayerChips = function (data, cb) {
 		let player = Players.getPlayerByUuid(data.uuid);
 		player.chips -= data.amount;

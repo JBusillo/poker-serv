@@ -17,9 +17,15 @@ export function emitClient(sid, ...args) {
 
 export function initCommunication() {
 	winston.info(`initCommunication - Initializing`);
+
+	//Create the main Players object
 	let p = PlayersInit();
 	Players = Object.create(p);
-	Accounting = AccountingInit();
+
+	//Create the main Accounting object
+	let a = AccountingInit();
+	Accounting = Object.create(a);
+
 	// add the channel (notify when 'players' has changed
 	io.on('connection', (socket) => {
 		SockMap.set(socket.client.id, socket);
