@@ -1,5 +1,4 @@
 const path = require('path');
-// const webpack = require('webpack');
 const nodeExternals = require('webpack-node-externals');
 // const NodemonPlugin = require('nodemon-webpack-plugin');
 // const devServer = require('webpack-dev-server');
@@ -8,7 +7,8 @@ module.exports = (env, argv) => {
 	const SERVER_PATH = argv.mode === 'production' ? './src/server.prod.js' : './src/server.dev.js';
 
 	const OUT_DIR = argv.mode === 'production' ? 'dist' : 'debug';
-	console.log(SERVER_PATH);
+	console.log(`SERVER_PATH ${SERVER_PATH}`);
+
 	return {
 		entry: {
 			server: SERVER_PATH,

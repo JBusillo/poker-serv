@@ -19,40 +19,40 @@ export default function score(cards) {
 
 	//Royal Flush '10-00-00-00-00-00'
 	if (isRoyalFlush) {
-		return { hand: 'Royal Flush', value: '10-00-00-00-00-00' };
+		return { hand: 'Royal Flush', handValue: '10-00-00-00-00-00' };
 	}
 
 	// Straight Flush '09-highcard-00-00-00'
 	if (isStraight && isFlush) {
-		return { hand: 'Straight Flush', value: `09-${ranksAceHigh[4]}-00-00-00-00` };
+		return { hand: 'Straight Flush', handValue: `09-${ranksAceHigh[4]}-00-00-00-00` };
 	}
 
 	// Full House '08-3card-2card-00-00-00'
 	if (isFullHouse) {
-		return { hand: 'Full House', value: `08${strPairs}` };
+		return { hand: 'Full House', handValue: `08${strPairs}` };
 	}
 
 	if (isFlush) {
-		return { hand: 'Flush', value: `07${strPairs}` };
+		return { hand: 'Flush', handValue: `07${strPairs}` };
 	}
 
 	if (isStraight) {
-		return { hand: 'Straight', value: `06${strPairs}` };
+		return { hand: 'Straight', handValue: `06${strPairs}` };
 	}
 
 	if (isThreeOfAKind) {
-		return { hand: 'Three of a Kind', value: `05${strPairs}` };
+		return { hand: 'Three of a Kind', handValue: `05${strPairs}` };
 	}
 
 	if (isTwoPair) {
-		return { hand: 'Two Pair', value: `04${strPairs}` };
+		return { hand: 'Two Pair', handValue: `04${strPairs}` };
 	}
 
 	if (isPair) {
-		return { hand: 'A Pair', value: `03${strPairs}` };
+		return { hand: 'A Pair', handValue: `03${strPairs}` };
 	}
 
-	return { hand: 'High Card', value: `02${strPairs}` };
+	return { hand: 'High Card', handValue: `02${strPairs}` };
 
 	function group() {
 		let pairs = [];
@@ -72,8 +72,6 @@ export default function score(cards) {
 		}
 		pairs.sort();
 		pairs.reverse();
-		//	console.log(arr);
-		//	console.log(pairs);
 		return { arr, pairs };
 	}
 

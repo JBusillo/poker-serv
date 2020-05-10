@@ -5,30 +5,17 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Launch via npm",
-			"type": "node",
-			"request": "launch",
-			"cwd": "${workspaceFolder}",
-			// "runtimeExecutable": "npm",
-			// "runtimeArgs": ["run-script", "dev"],
-			"port": 9230,
-			"sourceMaps": true,
-			"outFiles": ["${workspaceRoot}/debug/server.js"],
-			"restart": true,
-			"preLaunchTask": "npm: debug"
-		},
-		{
 			"name": "Launch Simple",
 			"type": "node",
 			"request": "launch",
 			"cwd": "${workspaceFolder}",
+			//			"env": { "DEBUG": "socket.io*" },
 			"runtimeExecutable": "npm",
-			"runtimeArgs": ["run-script", "dev"],
+			"runtimeArgs": ["run-script", "debug"],
 			"port": 9230,
 			"sourceMaps": true,
 			"outputCapture": "std",
-			"restart": true,
-			"outFiles": ["${workspaceRoot}/debug/server.js"]
+			"outFiles": ["${workspaceRoot}/debug/**.js"]
 			// "preLaunchTask": "npm: debug"
 		}
 	]

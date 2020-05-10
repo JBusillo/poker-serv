@@ -2,25 +2,64 @@ import { io } from './server';
 import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
 
-import { PlayersInit } from './players';
+import _Players from './players';
 import { AccountingInit } from './accounting';
-import Round from './round';
+import NewDeal from './NewDeal';
 
+export const ANTE_WAIT = 30000;
+export const DEALER_WAIT = 1000;
+export let globals = { gameInitialized: false };
 export let Players = [];
 export let Accounting = null;
+
 let SockMap = new Map();
 
-export function emitClient(sid, ...args) {
+export async function emitEasyAll(type, data, ...args) {
+	let actions = [];
+	actions.push({
+		type,
+		...data,
+	});
+	io.emit('PokerMessage', actions, ...args);
+}
+
+export function emitEasySid(sid, type, data, fn) {
 	let sock = SockMap.get(sid);
-	sock.emit(...args);
+
+	let actions = [];
+	actions.push({
+		type,
+		...data,
+	});
+
+	if (fn) {
+		sock.emit('PokerMessage', actions, fn);
+	} else {
+		sock.emit('PokerMessage', actions);
+	}
+}
+
+export function bcastGameMessage(message) {
+	emitEasyAll('InfoMsg', { message });
+}
+
+export function bcastPlayerMessage(uuid, message) {
+	emitEasyAll('PlayerShow', { uuid, message });
+}
+
+export function bcastPlayers() {
+	io.emit('PokerMessage', [{ type: 'Players', players: Array.from(Players) }]);
+}
+
+export function pupTag(tag) {
+	emitEasyAll('PupTag', { tag });
 }
 
 export function initCommunication() {
 	winston.info(`initCommunication - Initializing`);
 
 	//Create the main Players object
-	let p = PlayersInit();
-	Players = Object.create(p);
+	Players = new _Players();
 
 	//Create the main Accounting object
 	let a = AccountingInit();
@@ -40,13 +79,10 @@ export function initCommunication() {
 					Players.ready(data, fn);
 					break;
 				case 'beginTable':
-					Round(data, fn);
+					NewDeal(data, fn);
 					break;
-				case 'startRound':
-					Round(data, fn);
-					break;
-				case 'dealerPass':
-					Round(data, fn);
+				case 'startNewRound':
+					NewDeal(data, fn);
 					break;
 				case 'doBuyIn':
 					Accounting.buyin(data, fn);

@@ -1,66 +1,41 @@
 import { Players } from './controller';
 import * as Deck from './deck';
 import * as Table from './table';
-import winston from 'winston';
 
 export default async function Texas() {
-	winston.debug('texas.js - beginning');
-
 	// Reset Table
 	Table.prepareForNewRound();
 
 	// Shuffle Deck
-	winston.debug('texas.js - Deck.shuffle()');
 	Deck.shuffle();
 
-	// Cut Deck
-	// await cutDeck();
-
-	winston.debug('texas.js - Table.dealToPlayers(2)');
+	// Two cards face down to each player
 	await Table.dealToPlayers(2);
 
-	winston.debug('texas.js - Table.bettingRound()');
-	await Table.bettingRound();
+	// Initial betting round
+	await Table.bettingRound(1);
 
-	//Flop
-	if (Players.activeCount > 1) {
-		Deck.burn();
-		await Deck.dealToTable(3);
-		await Table.bettingRound();
+	// Flop - burn, deal 3 cards to table, second betting round
+	if (Players.activeCount() > 1) {
+		await Table.dealToTable(3, true);
+		await Table.bettingRound(2);
 	}
 
-	//Turn
-	if (Players.activeCount > 1) {
-		Deck.burn();
-		await Deck.dealToTable(1);
-		await Table.bettingRound();
+	// Flop - burn, deal 1 card to table, third betting round
+	if (Players.activeCount() > 1) {
+		await Table.dealToTable(1, true);
+		await Table.bettingRound(3);
 	}
 
-	//River
-	if (Players.activeCount > 1) {
-		Deck.burn();
-		await Deck.dealToTable(1);
-		await Table.bettingRound();
+	// River - burn, deal 1 card to table, fourth (final) betting round
+	if (Players.activeCount() > 1) {
+		await Table.dealToTable(1, true);
+		await Table.bettingRound(4);
 	}
 
-	await Table.showCards();
+	// Player selects the five cards to show
+	await Table.selectCards();
 
+	// Calculate winner, do accounting, etc.
 	await Table.calculateWinner();
-
-	//	Table.chanceToShow();
 }
-
-// obama-ha / high/low chicago
-
-// remove all cards
-// shuffle
-// cut
-// deal round (4)
-// bet
-// burn, deal table 3
-// bet
-// burn, deal table 1
-// bet
-// burn, deal table 1
-// bet
-// round (select 3 table, 2 player) show

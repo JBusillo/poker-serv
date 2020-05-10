@@ -1,7 +1,11 @@
 {
 	"parserOptions": {
-		"ecmaVersion": 6,
-		"sourceType": "module"
+		"ecmaVersion": 8,
+		"sourceType": "module",
+		"impliedStrict": true
+	},
+	"env": {
+		"node": true
 	},
 	"rules": {
 		"comma-dangle": "off",
@@ -9,7 +13,8 @@
 		"no-console": "off",
 		"brace-style": "off",
 		"no-unused-vars": "off",
-		"new-cap": "off"
+		"new-cap": "off",
+		"no-array-constructor": "off"
 	},
-	"extends": "eslint-config-synacor"
+	"extends": ["eslint:recommended", "airbnb-base"]
 }

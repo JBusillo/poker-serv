@@ -4,12 +4,13 @@
 	"description": "Poker Server",
 	"main": "server.js",
 	"scripts": {
-		"lint": "eslint src",
+		"lint": "eslint ./src",
 		"deploy": "@pwsh -NoProfile -ExecutionPolicy Unrestricted -Command deploy_express_poker",
 		"debug2": "webpack --watch --inspect=localhost:9230 --mode development --config webpack.server.config.js",
-		"debug": "webpack --mode development --config webpack.server.config.js && nodemon --nolazy --inspect-port=9230  debug/server.js",
+		"debug3": "webpack --mode development --config webpack.server.config.js && nodemon --nolazy --inspect-brk=9230  debug/server.js",
+		"debug": "webpack --mode development --config webpack.server.config.js && node --inspect-brk=9230  debug/server.js",
 		"dev": "webpack  --mode development --config webpack.server.config.js && node --nolazy --inspect-brk=9230  debug/server.js ",
-		"dev2": "webpack --watch --inspect=9230 --mode development --config webpack.server.config.js"
+		"dev2": "webpack  --mode development --config webpack.server.config.js"
 	},
 	"author": "Joe Busillo",
 	"license": "ISC",
@@ -20,8 +21,8 @@
 		"winston": "^3.2.1"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.8.7",
-		"@babel/preset-env": "^7.9.5",
+		"@babel/core": "^7.9.6",
+		"@babel/preset-env": "^7.9.6",
 		"babel-cli": "^6.26.0",
 		"babel-loader": "^8.0.6",
 		"babel-plugin-module-resolver": "^4.0.0",
@@ -29,11 +30,11 @@
 		"babel-preset-env": "^1.7.0",
 		"copy-node-modules": "^1.1.1",
 		"eslint": "^6.8.0",
-		"eslint-config-synacor": "^3.0.5",
+		"eslint-config-prettier": "^6.11.0",
 		"eslint-loader": "^3.0.4",
 		"nodemon": "^2.0.3",
 		"nodemon-webpack-plugin": "^4.3.1",
-		"webpack": "^4.42.0",
+		"webpack": "^4.43.0",
 		"webpack-cli": "^3.3.11",
 		"webpack-dev-middleware": "^3.7.2",
 		"webpack-dev-server": "^3.10.3",

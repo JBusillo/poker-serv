@@ -3,24 +3,10 @@ export const PokerDeck = makeDeck();
 function makeDeck() {
 	let allCards = [];
 	const suits = ['H', 'C', 'D', 'S'];
-	const values = [
-		'02',
-		'03',
-		'04',
-		'05',
-		'06',
-		'07',
-		'08',
-		'09',
-		'10',
-		'11',
-		'12',
-		'13',
-		'14',
-	];
+	const values = ['02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14'];
 
-	suits.forEach(elSuit => {
-		values.forEach(elValue => {
+	suits.forEach((elSuit) => {
+		values.forEach((elValue) => {
 			allCards.push(elSuit + elValue);
 		});
 	});

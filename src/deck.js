@@ -1,4 +1,5 @@
 import winston from 'winston';
+import { bcastGameMessage } from './controller';
 import { PokerDeck } from './pokerdeck';
 import { players } from './players';
 import { io } from './server';
@@ -7,9 +8,7 @@ let deck = [];
 let deckPointer = 0;
 
 export function shuffle() {
-	io.emit('PokerMessage', 'GameStatus', {
-		message: `Shuffling the deck...`,
-	});
+	bcastGameMessage(`Shuffling the deck...`);
 
 	let array = [...PokerDeck];
 	let m = array.length,
@@ -34,12 +33,10 @@ export function shuffle() {
 	deck.forEach((cd) => {
 		disp = disp + cd + ':';
 	});
-	winston.info('Shuffled Deck: %s', disp);
+	winston.info(`Shuffled Deck: %s`, disp);
 
 	return array;
 }
-
-export function dealToTable(numberOfCards) {}
 
 function burn() {
 	draw();

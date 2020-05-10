@@ -12,11 +12,19 @@ export let io;
 export async function startUp() {
 	await winster();
 
+	if (config.environment === 'development') {
+		const { spawn } = require('child_process');
+		const ls = spawn('touch', ['D:Projects\\poker\\src\\Game.svelte']);
+		ls.on('close', (code) => {
+			console.log(`touched GUI`);
+		});
+	}
+
 	app = await http.createServer(() => {});
 	io = await SocketIo(app);
 
-	winston.info('Node Version');
-	winston.info('Current Directory is %s', __dirname);
+	winston.info(`Node Version`);
+	winston.info(`Current Directory is ${__dirname}`);
 
 	initCommunication();
 

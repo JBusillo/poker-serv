@@ -1,110 +1,118 @@
-import { io } from './server';
 import { v4 as uuidv4 } from 'uuid';
-import { Players, emitClient } from './controller';
+import { bcastGameMessage, emitEasyAll, emitEasySid, globals } from './controller';
 import winston from 'winston';
+import Player from './Player';
 
-function PlayerInit(overrides) {
-	let player = {
-		uuid: null,
-		name: null,
-		sockid: null,
-		chips: 0,
-		buyin: 0,
-		dealer: false,
-		status: 'wait',
-		lastAction: null,
-		onBreak: false,
-		cards: [],
-		actions: [],
-		...overrides,
-	};
+export default function _Players() {}
 
-	player.setStatus = function (stat, refresh) {
-		winston.debug(`player.setStatus ${stat} ${refresh}`);
-		player.status = stat;
-		if (refresh) Players.refreshAll();
-	};
+_Players.prototype = new Array();
 
-	player.setLastAction = function (action) {
-		player.lastAction = action;
-	};
-	return player;
-}
+_Players.prototype.valueOf = function () {
+	return Array.from(this);
+};
 
-export function PlayersInit() {
-	winston.info(`start of PlayersInit`);
-	let Players = [];
+_Players.prototype.add = function (data, cb) {
+	try {
+		winston.info(`'addPlayer ${JSON.stringify(data)}`);
 
-	Players.add = function (data, cb) {
-		try {
-			winston.info(`'addPlayer ${data}`);
-			let player;
+		// Generate uuid if none passed
+		let uuid = data.uuid ? data.uuid : uuidv4();
 
-			// Generate uuid if none passed
-			let uuid = data.uuid ? data.uuid : uuidv4();
+		let player = this.getPlayerByUuid(uuid);
 
-			player = Players.getPlayerByUuid(uuid);
+		// Give this player a list of all current players
+		emitEasySid(data.sid, 'Players', { players: Array.from(this) });
 
-			if (!player) {
-				winston.info(`'adding player to table, uuid = ${uuid}`);
-				player = PlayerInit({ uuid, name: data.player, sockid: data.sid });
-				Players.push(player);
-			}
+		if (!player) {
+			winston.info(`'adding player to table, uuid = ${uuid}`);
 
-			Players.refreshAll();
+			player = new Player(uuid, data.player, data.sid);
+			this.push(player);
+			emitEasySid(data.sid, 'InfoName', { name: player.name });
 
-			io.emit('PokerMessage', 'GameStatus', {
-				message: `${player.name} joined the table!!!`,
-			});
-
-			emitClient(player.sockid, 'PokerMessage', 'MyActions', {
-				buttons: [{ id: 'myStart', text: 'StartGame', bguid: 'testing' }],
-			});
-
-			cb({ uuid });
-		} catch (e) {
-			winston.error(`Error in player.add ${e.message}`);
+			// Give everyone (including this player) this new player
+			player.refreshNewPlayer();
 		}
-	};
 
-	// function _Players() {
-	// 	this.players = [];
-	// 	this.partPlayers = [];
-	// 	// Round Robin "next" on partPlayers
-	// 	this.partPlayers.next = function (uuid) {
-	// 		let ix = this.partPlayers.findIndex((e) => e.uuid === uuid);
-	// 		return this.partPlayers[ix >= this.partPlayers.length ? 0 : ix];
-	// 	};
+		player.setActions({ action: 'Initial', gameInit: globals.gameInitialized, onBreak: player.isOnBreak });
 
-	Players.refreshAll = function () {
-		io.emit('PokerMessage', 'PlayerStatus', { players: Players, options: { hasBegun: false } });
-	};
+		// Send the new player its assigned uuid
+		cb({ uuid });
+	} catch (e) {
+		winston.error(`Error in player.add ${e.message}`);
+	}
+};
 
-	Players.refreshOne = function (player) {
-		io.emit(player.sockid, 'PlayerStatus', { players: Players, options: { hasBegun: false } });
-	};
+_Players.prototype.clearCards = function () {
+	this.forEach((player) => {
+		player.setStatus({ cards: [], dummyCards: [] });
+	});
+	// And clear my own cards
+	emitEasyAll('MyCards', {
+		cards: [],
+	});
 
-	Players.getNextActivePlayer = function () {
-		winston.error('Todo: getNextActivePlayer');
-		return Players[0];
-		// return player
-	};
+	// And clear table cards
+	emitEasyAll('TableCards', {
+		cards: [],
+	});
 
-	Players.getPlayerByUuid = function (uuid) {
-		return Players.find((e) => e.uuid === uuid);
-	};
+	// And clear cards dealt to players
+	emitEasyAll('PlayerCards', { cards: [] });
+};
 
-	Players.freeze = function freeze() {
-		Players.forEach((player) => {
-			if (player.status !== 'On Break') {
-				player.setStatus('Ready');
-			}
-			Players.refreshAll();
-		});
-	};
-	winston.info(`return of PlayersInit`);
-	return Players;
-}
+_Players.prototype.refreshAll = function () {
+	emitEasyAll('Players', { players: Array.from(this) });
+};
+
+//// Fix This -- no direct assignments!!!!
+_Players.prototype.getNextActivePlayer = function () {
+	let p = this.findIndex((e) => e.isDealer);
+	this[p].isDealer = false;
+
+	for (let i = p + 1; i < this.length; i++) {
+		if (!this[i].isOnBreak) {
+			this[i].isDealer = true;
+		}
+		return this[i];
+	}
+	for (let i = 0; i <= p; i++) {
+		if (!this[i].isOnBreak) {
+			this[i].isDealer = true;
+		}
+		return this[i];
+	}
+	return this[0];
+};
+
+_Players.prototype.getPlayerByUuid = function (uuid) {
+	return this.find((e) => e.uuid === uuid);
+};
+
+_Players.prototype.activeCount = function () {
+	let count = 0;
+	this.forEach((player) => {
+		if (['in', 'side-pot'].includes(player.status)) count++;
+	});
+	return count;
+};
+
+_Players.prototype.activePlayers = function () {
+	let players = [];
+	this.forEach((player) => {
+		if (['in', 'side-pot'].includes(player.status)) players.push(player);
+	});
+	players;
+};
+
+_Players.prototype.freeze = function freeze() {
+	this.forEach((player) => {
+		if (!player.isOnBreak) {
+			player.setStatus({ status: 'Ready' }, true);
+		}
+		this.refreshAll();
+	});
+};
 
 function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
