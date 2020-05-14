@@ -14,7 +14,7 @@ export async function startUp() {
 
 	if (config.environment === 'development') {
 		const { spawn } = require('child_process');
-		const ls = spawn('touch', ['D:Projects\\poker\\src\\Game.svelte']);
+		const ls = spawn('touch', ['D:/Projects/poker/src/Game.svelte']);
 		ls.on('close', (code) => {
 			console.log(`touched GUI`);
 		});

@@ -201,6 +201,7 @@ async function getAntes() {
 										{ status: 'On Break', lastAction: 'Time-Out', isOnBreak: true, highLight: false },
 										true
 									);
+
 									break;
 								default:
 							}

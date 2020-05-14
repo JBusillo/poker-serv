@@ -1,4 +1,7 @@
 import { io } from './server';
+import fs from 'fs';
+import config from './config.js';
+
 import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
 
@@ -55,6 +58,12 @@ export function pupTag(tag) {
 	emitEasyAll('PupTag', { tag });
 }
 
+function doDump(data, fn) {
+	fs.writeFileSync(`${config.dumpPath}dumpData${Date.now().toString()}.json`, JSON.stringify(data.dumpData));
+	fs.writeFileSync(`${config.dumpPath}dumpDOM${Date.now().toString()}.json`, JSON.stringify(data.dom));
+	fn();
+}
+
 export function initCommunication() {
 	winston.info(`initCommunication - Initializing`);
 
@@ -86,6 +95,9 @@ export function initCommunication() {
 					break;
 				case 'doBuyIn':
 					Accounting.buyin(data, fn);
+					break;
+				case 'doDump':
+					doDump(data, fn);
 					break;
 				case 'abort':
 					process.exit(0);

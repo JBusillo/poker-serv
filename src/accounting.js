@@ -34,9 +34,18 @@ export function AccountingInit() {
 	};
 
 	Accounting.buyin = function (data, cb) {
+		let player = Players.getPlayerByUuid(data.uuid);
+		if (player.chips >= 1000) {
+			if (cb)
+				cb({
+					status: 'FAILED',
+					chips: player.chips,
+					errorMessage: "Can't buy, wait until chip balance is under $10",
+				});
+			return;
+		}
 		Accounting.debitPlayer({ uuid: data.uuid, amount: data.amount });
 		Accounting.creditPlayerChips({ uuid: data.uuid, amount: data.amount });
-		let player = Players.getPlayerByUuid(data.uuid);
 		player.setStatus({ lastAction: 'buyin' }, true);
 		if (cb) {
 			Players.refreshAll();

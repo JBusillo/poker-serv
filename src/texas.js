@@ -9,11 +9,11 @@ export default async function Texas() {
 	// Shuffle Deck
 	Deck.shuffle();
 
-	// Two cards face down to each player
-	await Table.dealToPlayers(2);
-
-	// Initial betting round
-	await Table.bettingRound(1);
+	// Two cards face down to each player, first betting round
+	if (Players.activeCount() > 1) {
+		await Table.dealToPlayers(2);
+		await Table.bettingRound(1);
+	}
 
 	// Flop - burn, deal 3 cards to table, second betting round
 	if (Players.activeCount() > 1) {

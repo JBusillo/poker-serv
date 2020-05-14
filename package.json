@@ -15,6 +15,7 @@
 	"author": "Joe Busillo",
 	"license": "ISC",
 	"dependencies": {
+		"fs": "0.0.1-security",
 		"path": "^0.12.7",
 		"socket.io": "^2.3.0",
 		"uuid": "^7.0.3",
@@ -31,6 +32,7 @@
 		"copy-node-modules": "^1.1.1",
 		"eslint": "^6.8.0",
 		"eslint-config-prettier": "^6.11.0",
+		"eslint-config-synacor": "^3.0.5",
 		"eslint-loader": "^3.0.4",
 		"nodemon": "^2.0.3",
 		"nodemon-webpack-plugin": "^4.3.1",

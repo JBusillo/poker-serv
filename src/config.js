@@ -16,4 +16,8 @@ export default class Config {
 	static get headerOrigin() {
 		return _cfg.headerOrigin;
 	}
+
+	static get dumpPath() {
+		return _cfg.dumpPath;
+	}
 }

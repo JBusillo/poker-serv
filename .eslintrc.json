@@ -16,5 +16,5 @@
 		"new-cap": "off",
 		"no-array-constructor": "off"
 	},
-	"extends": ["eslint:recommended", "airbnb-base"]
+	"extends": ["eslint:recommended", "eslint-config-synacor"]
 }

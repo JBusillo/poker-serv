@@ -12,74 +12,46 @@ import { dealerData } from './NewDeal';
 import score from './scoring';
 import winston from 'winston';
 
-let tablePlayers = []; // mini-table (uuid only) of players in this round
-let sumOfRaises = 0; // total raise amount for each betting round
-let tableCards = []; // cards dealt to table
-let hands = []; // work table to calculate winners and payouts
-
-let tablePlayersV2 = []; // version 2: array of players in dealing order
+let sumOfRaises = 0, // total raise amount for each betting round
+	tableCards = [], // cards dealt to table
+	hands = [], // work table to calculate winners and payouts
+	tablePlayersV2 = [], // version 2: array of players in dealing order
+	potAsOfLastRound = 0; // for sidepot calculation
 
 /**
  * Prepares the table for a new round
  * Synchronous -- no needed awaits in function
  */
 export function prepareForNewRound() {
-	// Clear all cards off the table
+	// Clear players, table cards and hand results
 	tablePlayersV2 = [];
 	tableCards = [];
 	hands = [];
+	emitEasyAll('GameResults', { clear: true });
+
 	Players.clearCards();
 
-	// Creates a mini-table (tablePlayers) of players with uuid only)
-	// in dealing order (left of dealer, clockwise to
-	// and including) the dealer
-	let before = [],
-		after = [],
-		foundDealer = false;
-
+	let foundDealer = false;
 	let bseq = 0,
 		aseq = 49;
 
-	// rank deal sequence
+	// assign play sequence so that dealer is last
 	for (const player of Players) {
 		if (player.status === 'in') {
-			if (foundDealer) {
-				player.setStatus({ dealSequence: ++bseq });
-			} else {
-				player.setStatus({ dealSequence: ++aseq });
-			}
-			if (player.dealer === true) {
-				foundDealer = true;
-			}
+			player.setStatus({ dealSequence: foundDealer ? ++bseq : ++aseq });
+			if (player.dealer) foundDealer = true;
 			tablePlayersV2.push(player);
+		} else {
+			player.setStatus({ dealSequence: -1 });
 		}
 	}
 
-	// sort according to rank
+	// sort players according to sequence
 	tablePlayersV2.sort((a, b) => {
 		if (a.dealSequence < b.dealSequence) return -1;
 		if (a.dealSequence === b.dealSequence) return 0;
 		return 1;
 	});
-
-	for (const player of tablePlayersV2) {
-		console.log(`${player.name} ${player.dealSequence}`);
-	}
-
-	for (let i = 0; i < Players.length; i++) {
-		let player = Players[i];
-		if (player.status === 'in') {
-			if (foundDealer) {
-				before.push({ uuid: player.uuid });
-			} else {
-				after.push({ uuid: player.uuid });
-			}
-			if (player.dealer === true) {
-				foundDealer = true;
-			}
-		}
-	}
-	tablePlayers = [...before, ...after];
 }
 
 /**
@@ -91,8 +63,7 @@ export function prepareForNewRound() {
 export async function dealToPlayers(count) {
 	let c = count;
 	while (c-- > 0) {
-		for (let i = 0; i < tablePlayers.length; i++) {
-			let player = Players.getPlayerByUuid(tablePlayers[i].uuid);
+		for (const player of tablePlayersV2) {
 			if (player.status === 'in') {
 				player.cards.push(Deck.draw().short);
 				player.setDummyCards('XXX');
@@ -118,47 +89,57 @@ export async function bettingRound(numberRound) {
 
 	// reset all PlayerShow messages
 	emitEasyAll('PlayerShow', { clearAllMessages: true });
+
 	// add/reset any prior raise data
-	tablePlayers.forEach((tPlayer) => {
-		let player = Players.getPlayerByUuid(tPlayer.uuid);
+	for (const player of tablePlayersV2) {
 		player.setStatus({ raise: 0, paid: 0 });
-	});
+	}
 	sumOfRaises = 0;
 
 	//FIRST ROTATION - Check/Raise/See/See & Raise/Fold
-	for (let i = 0; i < tablePlayers.length; i++) {
-		let tPlayer = tablePlayers[i];
-		let player = Players.getPlayerByUuid(tPlayer.uuid);
+	for (const player of tablePlayersV2) {
 		if (player.status === 'in') {
-			let result = await BetDialog(player.uuid, true, numberRound);
+			let result = await BetDialog(player, true, numberRound);
 			processBetResult(player, result);
 		}
 	}
 
 	//SECOND ROTATION - See/Fold  (only for those owing!)
-	winston.debug(`table.js - second Rotation`);
-	for (let i = 0; i < tablePlayers.length; i++) {
-		let tPlayer = tablePlayers[i];
-		let player = Players.getPlayerByUuid(tPlayer.uuid);
+	for (const player of tablePlayersV2) {
 		if (player.status === 'in' && sumOfRaises > player.paid) {
-			let result = await BetDialog(player.uuid, false, numberRound);
+			let result = await BetDialog(player, false, numberRound);
 			processBetResult(player, result);
 		}
 	}
+
+	//SIDEPOT CALCULATION
+	for (const sidePotPlayer of tablePlayersV2) {
+		// did player create sidepot this round?
+		if (sidePotPlayer.status === 'side-pot' && sidePotPlayer.paid > 0) {
+			let sidePotAmount = 0;
+			// only include portion of players.paid up to the sidePotPlayer's contribution
+			for (const player of tablePlayersV2) {
+				sidePotAmount += player.paid <= sidePotPlayer.paid ? player.paid : sidePotPlayer.paid;
+			}
+			sidePotPlayer.setStatus({ sidePotAmount });
+		}
+	}
+
+	potAsOfLastRound += sumOfRaises;
 }
 
 /**
  * BetDialog:  Displays Bet dialog on client
  *             returns promise once response is received from the client
  */
-function BetDialog(playerUuid, allowRaise, numberRound) {
+function BetDialog(player, allowRaise, numberRound) {
 	return new Promise((resolve, reject) => {
 		try {
-			let player = Players.getPlayerByUuid(playerUuid);
 			pupTag(`betdialog.${player.uuid}.${numberRound}.${allowRaise ? 1 : 2}`);
 
 			bcastGameMessage(`Waiting for ${player.name} to bet`);
 			emitEasyAll('HighLight', { uuid: player.uuid, action: 'only' });
+
 			emitEasySid(
 				player.sockid,
 				'MyActions',
@@ -170,7 +151,7 @@ function BetDialog(playerUuid, allowRaise, numberRound) {
 					allowRaise,
 					numberRound,
 				},
-				function (data) {
+				(data) => {
 					resolve(data);
 				}
 			);
@@ -178,7 +159,6 @@ function BetDialog(playerUuid, allowRaise, numberRound) {
 		} catch (e) {
 			winston.debug(`Bet Dialog error: ${JSON.stringify(e)}`);
 			reject(new Error(`Bet Dialog error ${JSON.stringify(e)}`));
-			debugger;
 		}
 	});
 }
@@ -189,30 +169,26 @@ function BetDialog(playerUuid, allowRaise, numberRound) {
  * 						No blocking calls
  */
 function processBetResult(player, result) {
-	let message;
-	let amount;
+	let message, amount, incrementalRaise, originalRaise;
 	switch (result.action) {
 		case 'timeout':
 			player.clearCards();
 			player.setStatus({ status: 'fold', lastAction: 'fold (timeout)', highLight: false }, true);
+			message = `${player.name} didn't respond in time!!`;
 			break;
 		case 'check':
-			message = `${player.name} checked`;
 			player.setStatus({ lastAction: 'check', highLight: false }, true);
+			message = `${player.name} checked`;
 			break;
 		case 'fold':
-			message = `${player.name} folded!!`;
 			player.clearCards();
 			player.setStatus({ status: 'fold', lastAction: 'fold', highLight: false }, true);
+			message = `${player.name} folded!!`;
 			break;
 		case 'see': // First or Second Rotation
-			let incrementalRaise = sumOfRaises - player.paid;
-			winston.debug(`see incrementalRaise: ${incrementalRaise}`);
-			winston.debug(`see sumOfRaises: ${sumOfRaises}`);
-			winston.debug(`see player.chips before: ${player.chips}`);
+			incrementalRaise = sumOfRaises - player.paid;
 			Accounting.creditPot({ amount: incrementalRaise });
 			Accounting.debitPlayerChips({ uuid: player.uuid, amount: incrementalRaise });
-			winston.debug(`see player.chips after: ${player.chips}`);
 			player.setStatus(
 				{ lastAction: 'see', highLight: false, paid: (player.paid += incrementalRaise) },
 				true
@@ -220,22 +196,34 @@ function processBetResult(player, result) {
 			message = `${player.name} sees (accepts) the raise of ${formatAmount(incrementalRaise)}.`;
 			break;
 		case 'raise': // First rotation only
-			let originalRaise = sumOfRaises;
+			originalRaise = sumOfRaises;
 			sumOfRaises += result.raiseAmount;
 			Accounting.creditPot({ amount: sumOfRaises - player.paid });
 			Accounting.debitPlayerChips({ uuid: player.uuid, amount: sumOfRaises - player.paid });
-			player.setStatus({ lastAction: 'raise', highLight: false, paid: sumOfRaises }, true);
-			if (originalRaise === 0) {
-				message = `${player.name} raises for ${formatAmount(sumOfRaises)}`;
-			} else {
-				message = `${player.name} sees the raise of ${formatAmount(originalRaise)} and raises ${formatAmount(
-					result.raiseAmount
-				)} more!`;
+			player.setStatus(
+				{ lastAction: player.chips === 0 ? 'All In' : 'raise', highLight: false, paid: sumOfRaises },
+				true
+			);
+			switch (true) {
+				case player.chips === 0:
+					message = `${player.name} is ALL IN for ${formatAmount(sumOfRaises)}`;
+					break;
+				case originalRaise === 0:
+					message = `${player.name} raises for ${formatAmount(sumOfRaises)}`;
+					break;
+				default:
+					message = `${player.name} sees the raise of ${formatAmount(
+						originalRaise
+					)} and raises ${formatAmount(result.raiseAmount)} more!`;
 			}
 			break;
 		case 'side-pot':
 			Accounting.creditPot({ amount: player.chips });
-			Accounting.debitPlayerChips({ uuid: player.uuid, amount: player.chips, paid: player.chips });
+			Accounting.debitPlayerChips({
+				uuid: player.uuid,
+				amount: player.chips,
+				paid: (player.paid += player.chips),
+			});
 			player.setStatus({ status: 'side-pot', lastAction: 'side-pot', highLight: false }, true);
 			message = `${player.name} is all-in, created a side-pot.  All-in amount is ${amount}`;
 			break;
@@ -250,17 +238,16 @@ function processBetResult(player, result) {
  * 						async due to WaitABit
  */
 export async function dealToTable(count, burn) {
-	let card;
 	if (burn) {
 		bcastGameMessage(`Burning a Card`);
 		Deck.draw();
-		await waitABit(500);
+		await waitABit(200);
 	}
 	bcastGameMessage(`Dealing to Table`);
-	for (let i = 0; i < count; i++) tableCards.push((card = Deck.draw().short));
+	for (let i = 0; i < count; i++) tableCards.push(Deck.draw().short);
 
 	emitEasyAll('TableCards', { cards: tableCards });
-	await waitABit(500);
+	await waitABit(200);
 }
 //-------------------------------------------------------------------------------------------
 //
@@ -272,16 +259,14 @@ export async function dealToTable(count, burn) {
 export async function selectCards() {
 	let playersCount = 0;
 	let solePlayer = null;
-	for (let i = 0; i < tablePlayers.length; i++) {
-		let player = Players.getPlayerByUuid(tablePlayers[i].uuid);
+	for (const player of tablePlayersV2) {
 		if (['in', 'side-pot'].includes(player.status)) {
 			solePlayer = player;
 			playersCount++;
 		}
 	}
 	if (playersCount > 1) {
-		for (let i = 0; i < tablePlayers.length; i++) {
-			let player = Players.getPlayerByUuid(tablePlayers[i].uuid);
+		for (const player of tablePlayersV2) {
 			if (['in', 'side-pot'].includes(player.status)) {
 				let result = await selectDialog(player);
 				processSelectResult(player, result);
@@ -318,7 +303,8 @@ function selectDialog(player) {
 					miniDialog: 'SelectCards',
 					desc: 'Select 5 cards for Showdown!',
 				},
-				function (data) {
+
+				(data) => {
 					resolve(data);
 				}
 			);
@@ -387,6 +373,7 @@ function calculateHandData() {
 	while (remainingPot > 0) {
 		// Evaluate hands, high to low
 		for (const theHand of hands) {
+			if (remainingPot <= 0) break;
 			// distRounding contains amount to distribute, and remainder to distribute sequentially,
 			// such that all players receive multiples of 5 cents.
 			// returns { potSplit, nickelsToSplit };
@@ -444,7 +431,7 @@ function calculateHandData() {
 
 function roundDist(pot, numPlayers) {
 	let potSplit = Math.trunc(pot / (numPlayers * 5)) * 5;
-	let nickelsToSplit = pot - potSplit;
+	let nickelsToSplit = pot - potSplit * numPlayers;
 	return { potSplit, nickelsToSplit };
 }
 
