@@ -1,13 +1,12 @@
-import { io } from './server';
+import { io } from './server.js';
 import fs from 'fs';
 import config from './config.js';
 
-import { v4 as uuidv4 } from 'uuid';
 import winston from 'winston';
 
-import _Players from './players';
-import { AccountingInit } from './accounting';
-import NewDeal from './NewDeal';
+import _Players from './players.js';
+import { AccountingInit } from './accounting.js';
+import NewDeal from './NewDeal.js';
 
 export const ANTE_WAIT = 30000;
 export const DEALER_WAIT = 1000;

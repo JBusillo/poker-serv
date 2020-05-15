@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
-import { bcastGameMessage, emitEasyAll, emitEasySid, globals } from './controller';
+import { bcastGameMessage, emitEasyAll, emitEasySid, globals } from './controller.js';
 import winston from 'winston';
-import Player from './Player';
+import Player from './Player.js';
 
 export default function _Players() {}
 

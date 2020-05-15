@@ -1,4 +1,4 @@
-import * as Deck from 'deck';
+import * as Deck from './deck.js';
 import {
 	Players,
 	emitEasyAll,
@@ -7,9 +7,9 @@ import {
 	bcastGameMessage,
 	bcastPlayerMessage,
 	pupTag,
-} from './controller';
-import { dealerData } from './NewDeal';
-import score from './scoring';
+} from './controller.js';
+import { dealerData } from './NewDeal.js';
+import score from './scoring.js';
 import winston from 'winston';
 
 let sumOfRaises = 0, // total raise amount for each betting round

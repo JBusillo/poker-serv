@@ -5,6 +5,7 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			// "preLaunchTask": "debug",
 			"name": "Launch Simple",
 			"type": "node",
 			"request": "launch",
@@ -12,11 +13,15 @@
 			//			"env": { "DEBUG": "socket.io*" },
 			"runtimeExecutable": "npm",
 			"runtimeArgs": ["run-script", "debug"],
+			// "runtimeExecutable": "node",
+			// "runtimeArgs": ["${workspaceFolder}/debug/server.js"],
 			"port": 9230,
 			"sourceMaps": true,
 			"outputCapture": "std",
-			"outFiles": ["${workspaceRoot}/debug/**.js"]
-			// "preLaunchTask": "npm: debug"
+			"outFiles": ["${workspaceRoot}/debug/**"],
+			"sourceMapPathOverrides": {
+				"webpack:///.*/*": "${workspaceFolder}/*"
+			}
 		}
 	]
 }

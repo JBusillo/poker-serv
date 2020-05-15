@@ -1,6 +1,6 @@
-import { Players } from './controller';
-import * as Deck from './deck';
-import * as Table from './table';
+import { Players } from './controller.js';
+import * as Deck from './deck.js';
+import * as Table from './table.js';
 
 export default async function Texas() {
 	// Reset Table

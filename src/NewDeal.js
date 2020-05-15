@@ -8,10 +8,10 @@ import {
 	emitEasyAll,
 	emitEasySid,
 	pupTag,
-} from './controller';
+} from './controller.js';
 import winston from 'winston';
-import * as Deck from './deck';
-import Texas from './texas';
+import * as Deck from './deck.js';
+import Texas from './texas.js';
 
 let dealer = null;
 
@@ -131,7 +131,7 @@ async function getFirstDealer() {
 		while (!aceFound) {
 			for (let i = 0; i < Players.length; i++) {
 				let player = Players[i];
-				await sleep(200);
+				await sleep(100);
 				card = Deck.draw();
 				player.cards.push(card.short);
 				emitEasyAll('PlayerCards', { uuid: player.uuid, cards: player.cards });

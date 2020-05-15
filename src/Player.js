@@ -1,4 +1,4 @@
-import { emitEasyAll, emitEasySid } from './controller';
+import { emitEasyAll, emitEasySid } from './controller.js';
 import winston from 'winston';
 
 export default function Player(uuid, name, sockid) {

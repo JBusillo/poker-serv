@@ -8,6 +8,7 @@ module.exports = (env, argv) => {
 
 	const OUT_DIR = argv.mode === 'production' ? 'dist' : 'debug';
 	console.log(`SERVER_PATH ${SERVER_PATH}`);
+	console.log(__dirname);
 
 	return {
 		entry: {
@@ -17,6 +18,7 @@ module.exports = (env, argv) => {
 			path: path.join(__dirname, OUT_DIR),
 			publicPath: '/',
 			filename: '[name].js',
+			devtoolModuleFilenameTemplate: `file:///${__dirname}`,
 		},
 		target: 'node',
 		node: {
@@ -25,7 +27,7 @@ module.exports = (env, argv) => {
 			__filename: false, // and __filename return blank or /
 		},
 		externals: [nodeExternals()], // Need this to avoid error when working with Express
-		devtool: 'inline-source-map',
+		devtool: 'source-map',
 		//		devServer: { writeToDisk: true },
 		plugins: [
 			// new NodemonPlugin({

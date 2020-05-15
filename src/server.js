@@ -1,9 +1,9 @@
 import http from 'http';
 import SocketIo from 'socket.io';
 import config from './config.js';
-import { winster } from './winster';
+import { winster } from './winster.js';
 import winston from 'winston';
-import { initCommunication } from './controller';
+import { initCommunication } from './controller.js';
 
 export let app;
 export let server;

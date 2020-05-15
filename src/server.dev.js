@@ -1,4 +1,4 @@
-import { startUp } from './server';
+import { startUp } from './server.js';
 import cfg from './config.js';
 
 const config = {

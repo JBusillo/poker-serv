@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { Players, emitEasyAll } from './controller';
+import { Players, emitEasyAll } from './controller.js';
 
 export function AccountingInit() {
 	let Accounting = new Map();
