@@ -25,7 +25,7 @@ export default function Player(uuid, name, sockid) {
 	this.handValue = '';
 
 	this.isOnBreak = false;
-	this.rejoinFromBreak = false;
+	this.isOnBreakNextRound = false;
 	this.isSidePot = false;
 	this.sidePotAmount = 0;
 	this.dealSequence = 0;
@@ -51,7 +51,7 @@ Player.prototype.setStatus = function (stat, refresh) {
 	if (typeof stat.hand !== 'undefined') this.hand = stat.hand;
 	if (typeof stat.handValue !== 'undefined') this.handValue = stat.handValue;
 	if (typeof stat.isOnBreak !== 'undefined') this.isOnBreak = stat.isOnBreak;
-	if (typeof stat.rejoinFromBreak !== 'undefined') this.rejoinFromBreak = stat.rejoinFromBreak;
+	if (typeof stat.isOnBreakNextRound !== 'undefined') this.isOnBreakNextRound = stat.isOnBreakNextRound;
 	if (typeof stat.isSidePot !== 'undefined') this.isSidePot = stat.isSidePot;
 	if (typeof stat.sidePotAmount !== 'undefined') this.sidePotAmount = stat.sidePotAmount;
 	if (typeof stat.dealSequence !== 'undefined') this.dealSequence = stat.dealSequence;
@@ -99,7 +99,7 @@ Player.prototype.refresh = function (messageType) {
 			status: this.status,
 			lastAction: this.lastAction,
 			isOnBreak: this.isOnBreak,
-			rejoinFromBreak: this.rejoinFromBreak,
+			isOnBreakNextRound: this.isOnBreakNextRound,
 			buttons: this.buttons,
 			//			cards: this.dummyCards,
 			//			playedCards: showCards ? this.playedCards : this.playedCards,

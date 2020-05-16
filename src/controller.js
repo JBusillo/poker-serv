@@ -1,18 +1,20 @@
+import { EventEmitter } from 'events';
 import { io } from './server.js';
 import fs from 'fs';
 import config from './config.js';
-
 import winston from 'winston';
-
 import _Players from './players.js';
 import { AccountingInit } from './accounting.js';
 import NewDeal from './NewDeal.js';
 
 export const ANTE_WAIT = 30000;
 export const DEALER_WAIT = 1000;
-export let globals = { gameInitialized: false };
+export let globals = { gameInitialized: false, pauseGame: false };
 export let Players = [];
 export let Accounting = null;
+
+// for pausing/resume event
+export const resumeEvent = new EventEmitter();
 
 let SockMap = new Map();
 
@@ -57,12 +59,6 @@ export function pupTag(tag) {
 	emitEasyAll('PupTag', { tag });
 }
 
-function doDump(data, fn) {
-	fs.writeFileSync(`${config.dumpPath}dumpData${Date.now().toString()}.json`, JSON.stringify(data.dumpData));
-	fs.writeFileSync(`${config.dumpPath}dumpDOM${Date.now().toString()}.json`, JSON.stringify(data.dom));
-	fn();
-}
-
 export function initCommunication() {
 	winston.info(`initCommunication - Initializing`);
 
@@ -98,6 +94,18 @@ export function initCommunication() {
 				case 'doDump':
 					doDump(data, fn);
 					break;
+				case 'goOnBreak':
+					goOnBreak(data, fn);
+					break;
+				case 'goOffBreak':
+					goOffBreak(data, fn);
+					break;
+				case 'pauseGame':
+					gamePause();
+					break;
+				case 'resumeGame':
+					gameResume();
+					break;
 				case 'abort':
 					process.exit(0);
 					break;
@@ -106,4 +114,29 @@ export function initCommunication() {
 			}
 		});
 	});
+}
+function doDump(data, fn) {
+	fs.writeFileSync(`${config.dumpPath}dumpData${Date.now().toString()}.json`, JSON.stringify(data.dumpData));
+	fs.writeFileSync(`${config.dumpPath}dumpDOM${Date.now().toString()}.json`, JSON.stringify(data.dom));
+	fn();
+}
+
+function goOnBreak(data, fn) {
+	let player = Players.getPlayerBySockId(data.sid);
+	player.setStatus({ isOnBreakNextRound: true }, true);
+	if (fn) fn();
+}
+
+function goOffBreak(data, fn) {
+	let player = Players.getPlayerBySockId(data.sid);
+	player.setStatus({ isOnBreakNextRound: false }, true);
+	if (fn) fn();
+}
+
+function gamePause() {
+	globals.pauseGame = true;
+}
+
+function gameResume() {
+	resumeEvent.emit('resume');
 }

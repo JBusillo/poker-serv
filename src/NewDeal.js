@@ -1,3 +1,5 @@
+//import { EventEmitter } from 'events';
+
 import {
 	ANTE_WAIT,
 	DEALER_WAIT,
@@ -8,6 +10,8 @@ import {
 	emitEasyAll,
 	emitEasySid,
 	pupTag,
+	pauseGame,
+	resumeEvent,
 } from './controller.js';
 import winston from 'winston';
 import * as Deck from './deck.js';
@@ -19,6 +23,15 @@ export let dealerData = null;
 
 export default async function NewDeal() {
 	//Reset Pot
+
+	if (globals.pauseGame) {
+		bcastGameMessage(`Game is Paused`);
+		await new Promise((resolve) => {
+			globals.pauseGame = false;
+			resumeEvent.once('resume', resolve);
+		});
+	}
+
 	Accounting.newDeal();
 
 	//Reset any player counters
@@ -29,7 +42,7 @@ export default async function NewDeal() {
 
 	globals.gameInitialized = true;
 
-	// freeze - set player status to "ready" if they aren't on a break
+	// freeze -  freezes who can participate in this upcoming game
 	Players.freeze();
 
 	emitEasyAll('MyActions', {

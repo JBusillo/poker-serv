@@ -89,6 +89,10 @@ _Players.prototype.getPlayerByUuid = function (uuid) {
 	return this.find((e) => e.uuid === uuid);
 };
 
+_Players.prototype.getPlayerBySockId = function (sockId) {
+	return this.find((e) => e.sockid === sockId);
+};
+
 _Players.prototype.activeCount = function () {
 	let count = 0;
 	this.forEach((player) => {
@@ -107,8 +111,10 @@ _Players.prototype.activePlayers = function () {
 
 _Players.prototype.freeze = function freeze() {
 	this.forEach((player) => {
-		if (!player.isOnBreak) {
-			player.setStatus({ status: 'Ready' }, true);
+		if (player.isOnBreakNextRound) {
+			player.setStatus({ isOnBreak: true, isOnBreakNextRound: true }, true);
+		} else {
+			player.setStatus({ status: 'Ready', isOnBreak: false, isOnBreakNextRound: false }, true);
 		}
 		this.refreshAll();
 	});
