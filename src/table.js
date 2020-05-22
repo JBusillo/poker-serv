@@ -1,5 +1,6 @@
-import * as Deck from './deck.js';
+import * as Deck from './Deck.js';
 import {
+	globals,
 	Players,
 	emitEasyAll,
 	emitEasySid,
@@ -7,16 +8,13 @@ import {
 	bcastGameMessage,
 	bcastPlayerMessage,
 	pupTag,
-} from './controller.js';
-import { dealerData } from './NewDeal.js';
-import score from './scoring.js';
+} from './Controller.js';
+import score from './Scoring.js';
 import winston from 'winston';
 
 let sumOfRaises = 0, // total raise amount for each betting round
-	tableCards = [], // cards dealt to table
 	hands = [], // work table to calculate winners and payouts
-	tablePlayersV2 = [], // version 2: array of players in dealing order
-	potAsOfLastRound = 0; // for sidepot calculation
+	tablePlayers = []; // array of players in dealing order
 
 /**
  * Prepares the table for a new round
@@ -24,12 +22,9 @@ let sumOfRaises = 0, // total raise amount for each betting round
  */
 export function prepareForNewRound() {
 	// Clear players, table cards and hand results
-	tablePlayersV2 = [];
-	tableCards = [];
+	tablePlayers = [];
+	globals.tableCards = [];
 	hands = [];
-	emitEasyAll('GameResults', { clear: true });
-
-	Players.clearCards();
 
 	let foundDealer = false;
 	let bseq = 0,
@@ -40,14 +35,14 @@ export function prepareForNewRound() {
 		if (player.status === 'in') {
 			player.setStatus({ dealSequence: foundDealer ? ++bseq : ++aseq });
 			if (player.dealer) foundDealer = true;
-			tablePlayersV2.push(player);
+			tablePlayers.push(player);
 		} else {
 			player.setStatus({ dealSequence: -1 });
 		}
 	}
 
 	// sort players according to sequence
-	tablePlayersV2.sort((a, b) => {
+	tablePlayers.sort((a, b) => {
 		if (a.dealSequence < b.dealSequence) return -1;
 		if (a.dealSequence === b.dealSequence) return 0;
 		return 1;
@@ -63,7 +58,7 @@ export function prepareForNewRound() {
 export async function dealToPlayers(count) {
 	let c = count;
 	while (c-- > 0) {
-		for (const player of tablePlayersV2) {
+		for (const player of tablePlayers) {
 			if (player.status === 'in') {
 				player.cards.push(Deck.draw().short);
 				player.setDummyCards('XXX');
@@ -91,41 +86,39 @@ export async function bettingRound(numberRound) {
 	emitEasyAll('PlayerShow', { clearAllMessages: true });
 
 	// add/reset any prior raise data
-	for (const player of tablePlayersV2) {
+	for (const player of tablePlayers) {
 		player.setStatus({ raise: 0, paid: 0 });
 	}
 	sumOfRaises = 0;
 
 	//FIRST ROTATION - Check/Raise/See/See & Raise/Fold
-	for (const player of tablePlayersV2) {
-		if (player.status === 'in') {
+	for (const player of tablePlayers) {
+		if (player.status === 'in' && player.chips > 0) {
 			let result = await BetDialog(player, true, numberRound);
 			processBetResult(player, result);
 		}
 	}
 
 	//SECOND ROTATION - See/Fold  (only for those owing!)
-	for (const player of tablePlayersV2) {
-		if (player.status === 'in' && sumOfRaises > player.paid) {
+	for (const player of tablePlayers) {
+		if (player.status === 'in' && sumOfRaises > player.paid && player.chips > 0) {
 			let result = await BetDialog(player, false, numberRound);
 			processBetResult(player, result);
 		}
 	}
 
 	//SIDEPOT CALCULATION
-	for (const sidePotPlayer of tablePlayersV2) {
+	for (const sidePotPlayer of tablePlayers) {
 		// did player create sidepot this round?
 		if (sidePotPlayer.status === 'side-pot' && sidePotPlayer.paid > 0) {
 			let sidePotAmount = 0;
 			// only include portion of players.paid up to the sidePotPlayer's contribution
-			for (const player of tablePlayersV2) {
+			for (const player of tablePlayers) {
 				sidePotAmount += player.paid <= sidePotPlayer.paid ? player.paid : sidePotPlayer.paid;
 			}
 			sidePotPlayer.setStatus({ sidePotAmount });
 		}
 	}
-
-	potAsOfLastRound += sumOfRaises;
 }
 
 /**
@@ -134,6 +127,9 @@ export async function bettingRound(numberRound) {
  */
 function BetDialog(player, allowRaise, numberRound) {
 	return new Promise((resolve, reject) => {
+		let timeoutId = setTimeout(() => {
+			resolve({ action: 'timeout' });
+		}, globals.BET_WAIT);
 		try {
 			pupTag(`betdialog.${player.uuid}.${numberRound}.${allowRaise ? 1 : 2}`);
 
@@ -152,10 +148,10 @@ function BetDialog(player, allowRaise, numberRound) {
 					numberRound,
 				},
 				(data) => {
+					clearTimeout(timeoutId);
 					resolve(data);
 				}
 			);
-			//			if (!allowRaise) debugger;
 		} catch (e) {
 			winston.debug(`Bet Dialog error: ${JSON.stringify(e)}`);
 			reject(new Error(`Bet Dialog error ${JSON.stringify(e)}`));
@@ -172,9 +168,10 @@ function processBetResult(player, result) {
 	let message, amount, incrementalRaise, originalRaise;
 	switch (result.action) {
 		case 'timeout':
+			console.log(`player ${player.name} put on break in Bet Round`);
 			player.clearCards();
 			player.setStatus({ status: 'fold', lastAction: 'fold (timeout)', highLight: false }, true);
-			message = `${player.name} didn't respond in time!!`;
+			message = `${player.name} didn't respond in time!! Auto-Fold`;
 			break;
 		case 'check':
 			player.setStatus({ lastAction: 'check', highLight: false }, true);
@@ -244,55 +241,102 @@ export async function dealToTable(count, burn) {
 		await waitABit(200);
 	}
 	bcastGameMessage(`Dealing to Table`);
-	for (let i = 0; i < count; i++) tableCards.push(Deck.draw().short);
+	for (let i = 0; i < count; i++) globals.tableCards.push(Deck.draw().short);
 
-	emitEasyAll('TableCards', { cards: tableCards });
+	emitEasyAll('TableCards', { cards: globals.tableCards });
 	await waitABit(200);
 }
 //-------------------------------------------------------------------------------------------
 //
+//             Discard Player Cards
+//
+//-------------------------------------------------------------------------------------------
+export async function discard(rule, prompt) {
+	bcastGameMessage(`Awaiting Discards`);
+	let promises = [];
+	for (const player of tablePlayers) {
+		if (player.status === 'in') {
+			let promise = new Promise((resolve, reject) => {
+				// On Time-Out, remove player from action
+				let timeoutId = setTimeout(() => {
+					console.log(`player ${player.name} put on break in Discard Round`);
+					player.clearCards();
+					player.setStatus(
+						{ status: 'On Break', lastAction: 'Time-Out', isOnBreak: true, highLight: false },
+						true
+					);
+					resolve({ player });
+				}, globals.DISCARD_WAIT);
+				player.setStatus({ highLight: true }, true);
+				emitEasySid(
+					player.sockid,
+					'MyActions',
+					{
+						miniDialog: 'Discard',
+						rule,
+						prompt,
+					},
+					(data) => {
+						// if promise was resolved/reject (should only happen on time-out), ignore any response
+						clearTimeout(timeoutId);
+						player.setStatus(
+							{
+								cards: data.remainingCards,
+								dummyCards: player.dummyCards.slice(0, data.remainingCards.length),
+							},
+							true
+						);
+						emitEasySid(player.sockid, 'MyCards', {
+							cards: player.cards,
+						});
+						// Show back of remaining cards to all players
+						emitEasyAll('PlayerCards', { uuid: player.uuid, cards: player.dummyCards });
+						resolve();
+					}
+				);
+			});
+			promises.push(promise);
+		}
+	}
+	return await Promise.allSettled(promises);
+}
+
+//-------------------------------------------------------------------------------------------
 //
 //             Selecting Cards to Play
 //
-//
 //-------------------------------------------------------------------------------------------
-export async function selectCards() {
-	let playersCount = 0;
-	let solePlayer = null;
-	for (const player of tablePlayersV2) {
+export async function selectCards(rule, prompt) {
+	for (const player of tablePlayers) {
 		if (['in', 'side-pot'].includes(player.status)) {
-			solePlayer = player;
-			playersCount++;
-		}
-	}
-	if (playersCount > 1) {
-		for (const player of tablePlayersV2) {
-			if (['in', 'side-pot'].includes(player.status)) {
-				let result = await selectDialog(player);
+			if (Players.activeCount() > 1) {
+				let result = await selectDialog(player, rule, prompt);
 				processSelectResult(player, result);
+			} else {
+				hands.push({
+					hand: 'Everyone Folded!',
+					handValue: '00-00-00-00-00-00',
+					players: [
+						{
+							uuid: player.uuid,
+							name: player.name,
+							isSidePot: player.isSidePot,
+							sidePotAmount: player.sidePotAmount,
+							playerWinAmount: 0,
+						},
+					],
+				});
 			}
 		}
-	} else {
-		console.log('solePlayer');
-		hands.push({
-			hand: 'Everyone Folded!',
-			handValue: '00-00-00-00-00-00',
-			players: [
-				{
-					uuid: solePlayer.uuid,
-					name: solePlayer.name,
-					isSidePot: solePlayer.isSidePot,
-					sidePotAmount: solePlayer.sidePotAmount,
-					playerWinAmount: 0,
-				},
-			],
-		});
 	}
 }
 
-function selectDialog(player) {
+function selectDialog(player, rule, prompt) {
 	return new Promise((resolve, reject) => {
 		try {
+			let timeoutId = setTimeout(() => {
+				resolve({ action: 'timeout' });
+			}, globals.SHOW_WAIT);
 			emitEasyAll('HighLight', { uuid: player.uuid, action: 'only' });
 			bcastGameMessage(`SHOWDOWN!!! Waiting for ${player.name} to show or fold`);
 			pupTag(`showdialog.${player.uuid}`);
@@ -301,10 +345,12 @@ function selectDialog(player) {
 				'MyActions',
 				{
 					miniDialog: 'SelectCards',
-					desc: 'Select 5 cards for Showdown!',
+					rule,
+					prompt,
 				},
 
 				(data) => {
+					clearTimeout(timeoutId);
 					resolve(data);
 				}
 			);
@@ -316,51 +362,74 @@ function selectDialog(player) {
 }
 
 function processSelectResult(player, result) {
-	if (result.action === 'ok') {
-		let scoreResult = score(result.cards);
-		player.setStatus(
-			{
-				playedCards: result.cards,
-				lastAction: 'show',
-				highLight: false,
-				hand: scoreResult.hand,
-				handValue: scoreResult.handValue,
-			},
-			true
-		);
-		emitEasyAll('PlayerCards', { uuid: player.uuid, cards: player.cards });
-		emitEasyAll('PlayerShow', { uuid: player.uuid, cards: player.playedCards, hand: scoreResult.hand });
+	let scoreResult, playerData, handEntry;
+	switch (result.action) {
+		case 'ok':
+			scoreResult = score(result.cards);
+			player.setStatus(
+				{
+					playedCards: result.cards,
+					lastAction: 'show',
+					highLight: false,
+					hand: scoreResult.hand,
+					handValue: scoreResult.handValue,
+				},
+				true
+			);
+			emitEasyAll('PlayerCards', { uuid: player.uuid, cards: player.cards });
+			emitEasyAll('PlayerShow', { uuid: player.uuid, cards: player.playedCards, hand: scoreResult.hand });
 
-		// add to hands table for scoring
-		let playerData = {
-			uuid: player.uuid,
-			name: player.name,
-			isSidePot: player.isSidePot,
-			sidePotAmount: player.sidePotAmount,
-			playerWinAmount: 0,
-		};
+			// add to hands table for scoring
+			playerData = {
+				uuid: player.uuid,
+				name: player.name,
+				isSidePot: player.isSidePot,
+				sidePotAmount: player.sidePotAmount,
+				playerWinAmount: 0,
+				playedCards: player.playedCards,
+			};
 
-		let handEntry = hands.find((e) => e.handValue === scoreResult.handValue);
-		if (handEntry) {
-			handEntry.players.push(playerData);
-		} else {
-			hands.push({ hand: scoreResult.hand, handValue: scoreResult.handValue, players: [playerData] });
-		}
-	} else {
-		player.setStatus({ status: 'fold', lastAction: 'fold', highLight: false });
+			handEntry = hands.find((e) => e.handValue === scoreResult.handValue);
+			if (handEntry) {
+				handEntry.players.push(playerData);
+			} else {
+				hands.push({ hand: scoreResult.hand, handValue: scoreResult.handValue, players: [playerData] });
+			}
+			break;
+		case 'fold':
+			player.setStatus({ status: 'fold', lastAction: 'fold', highLight: false }, true);
+			break;
+		case 'timeout':
+			console.log(`player ${player.name} put on break in Select Dialog`);
+			player.setStatus(
+				{ status: 'On Break', lastAction: 'Time-Out', isOnBreak: true, highLight: false },
+				true
+			);
+			break;
 	}
 }
 
-export function calculateWinner() {
+//scoreType = 'lowspade', 'highspade'
+export function calculateWinner(scoreType) {
 	pupTag(`windialog`);
-	bcastGameMessage(`Calculating winner.  May take a few hours...`);
-	calculateHandData();
-	distributeWinnings();
-	showWinnings();
+	bcastGameMessage(`Showing Winner Data`);
+	calculateHandData(scoreType);
+	distributeWinnings(scoreType);
+	showWinnings(scoreType);
 }
 
-function calculateHandData() {
+function calculateHandData(scoreType) {
 	console.log(`hands table   ${JSON.stringify(hands)}`);
+
+	for (const player of tablePlayers) {
+		if (['in', 'side-pot'].includes(player.status)) {
+			playedCards: result.cards,
+			lastAction: 'show',
+			highLight: false,
+			hand: scoreResult.hand,
+			handValue: scoreResult.handValue,
+		}
+	}
 
 	// sort hands table, reverse order (high to low)
 	hands.sort((a, b) => {
@@ -392,7 +461,7 @@ function calculateHandData() {
 			// allocate any extra nickels
 			for (const player of theHand.players) {
 				if (distRounding.nickelsToSplit <= 0) break;
-				player.playerWinAmount = +5;
+				player.playerWinAmount += 5;
 				remainingPot -= 5;
 				distRounding.nickelsToSplit -= 5;
 			}
@@ -419,7 +488,7 @@ function calculateHandData() {
 				for (const player of theHand.players) {
 					if (distRounding.nickelsToSplit <= 0) break;
 					if (!player.isSidePot) {
-						player.playerWinAmount = +5;
+						player.playerWinAmount += 5;
 						remainingPot -= 5;
 						distRounding.nickelsToSplit -= 5;
 					}
@@ -456,24 +525,45 @@ function distributeWinnings() {
 // playerWinAmount: 0,
 
 function showWinnings() {
-	let text = [];
+	// let text = [];
+	// for (const theHand of hands) {
+	// 	for (const player of theHand.players) {
+	// 		text.push(`${player.name}`);
+	// 		text.push(`  Hand: ${theHand.hand}   ${theHand.handValue}`);
+	// 		if (player.playerWinAmount > 0) {
+	// 			text.push(`  Won: ${formatAmount(player.playerWinAmount)}`);
+	// 		}
+	// 		if (player.isSidePot > 0) {
+	// 			text.push(`  Sidepot`);
+	// 		}
+	// 	}
+
+	let data = [];
 	for (const theHand of hands) {
 		for (const player of theHand.players) {
-			text.push(`${player.name}`);
-			text.push(`  Hand: ${theHand.hand}   ${theHand.handValue}`);
-			if (player.playerWinAmount > 0) {
-				text.push(`  Won: ${formatAmount(player.playerWinAmount)}`);
-			}
+			let line = {
+				player: player.name,
+				hand: theHand.hand,
+				handValue: theHand.handValue,
+				won: player.playerWinAmount,
+				message: '',
+			};
 			if (player.isSidePot > 0) {
-				text.push(`  Sidepot`);
+				line.message = 'Side Pot';
 			}
+			data.push(line);
 		}
-
-		emitEasyAll('GameResults', { text });
-		emitEasyAll('MyActions', {
-			action: 'NewGame',
-		});
 	}
+
+	emitEasyAll('GameResults', { results: data, show: true });
+
+	emitEasyAll('MyActions', {
+		action: 'NewGame',
+	});
+
+	globals.gameInProgress = false;
+
+	Players.updateBreak();
 }
 
 function formatAmount(amount) {

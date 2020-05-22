@@ -1,8 +1,6 @@
 import winston from 'winston';
-import { bcastGameMessage } from './controller.js';
-import { PokerDeck } from './pokerdeck.js';
-// import { players } from './players';
-// import { io } from './server.js';
+import { bcastGameMessage } from './Controller.js';
+import { PokerDeck } from './Pokerdeck.js';
 
 let deck = [];
 let deckPointer = 0;

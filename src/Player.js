@@ -1,4 +1,4 @@
-import { emitEasyAll, emitEasySid } from './controller.js';
+import { emitEasyAll, emitEasySid } from './Controller.js';
 import winston from 'winston';
 
 export default function Player(uuid, name, sockid) {
@@ -32,6 +32,8 @@ export default function Player(uuid, name, sockid) {
 }
 
 Player.prototype.setStatus = function (stat, refresh) {
+	if (typeof stat.sockid !== 'undefined') this.sockid = stat.sockid;
+
 	if (typeof stat.chips !== 'undefined') this.chips = stat.chips;
 	if (typeof stat.buyIn !== 'undefined') this.buyIn = stat.buyIn;
 	if (typeof stat.raise !== 'undefined') this.raise = stat.raise;
@@ -50,7 +52,10 @@ Player.prototype.setStatus = function (stat, refresh) {
 
 	if (typeof stat.hand !== 'undefined') this.hand = stat.hand;
 	if (typeof stat.handValue !== 'undefined') this.handValue = stat.handValue;
-	if (typeof stat.isOnBreak !== 'undefined') this.isOnBreak = stat.isOnBreak;
+	if (typeof stat.isOnBreak !== 'undefined') {
+		this.isOnBreak = stat.isOnBreak;
+		this.isOnBreakNextRound = stat.isOnBreakNextRound;
+	}
 	if (typeof stat.isOnBreakNextRound !== 'undefined') this.isOnBreakNextRound = stat.isOnBreakNextRound;
 	if (typeof stat.isSidePot !== 'undefined') this.isSidePot = stat.isSidePot;
 	if (typeof stat.sidePotAmount !== 'undefined') this.sidePotAmount = stat.sidePotAmount;
@@ -101,8 +106,6 @@ Player.prototype.refresh = function (messageType) {
 			isOnBreak: this.isOnBreak,
 			isOnBreakNextRound: this.isOnBreakNextRound,
 			buttons: this.buttons,
-			//			cards: this.dummyCards,
-			//			playedCards: showCards ? this.playedCards : this.playedCards,
 			highLight: this.highLight,
 		},
 	};

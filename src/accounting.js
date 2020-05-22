@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { Players, emitEasyAll } from './controller.js';
+import { Players, emitEasyAll } from './Controller.js';
 
 export function AccountingInit() {
 	let Accounting = new Map();
@@ -12,7 +12,10 @@ export function AccountingInit() {
 	};
 	Accounting.debitPlayerChips = function (data, cb) {
 		let player = Players.getPlayerByUuid(data.uuid);
-		player.setStatus({ chips: (player.chips -= data.amount) });
+		player.setStatus({
+			chips: (player.chips -= data.amount),
+			totalBetThisRound: (player.totalBetThisRound += data.amount),
+		});
 	};
 	Accounting.creditPlayerChips = function (data, cb) {
 		let player = Players.getPlayerByUuid(data.uuid);

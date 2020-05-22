@@ -1,12 +1,11 @@
-import { startUp } from './server.js';
-import cfg from './config.js';
+import { startUp } from './Server.js';
+import cfg from './Config.js';
 
 const config = {
 	environment: 'development',
 	headerOrigin: 'http://localhost',
 	port: 8080,
 	dumpPath: `D:/Projects/poker-serv/`,
-	//	dumpPath: `D:/Projects/poker-serv/dump${Date.now().toString()}.json`,
 };
 
 cfg.setConfig(config);

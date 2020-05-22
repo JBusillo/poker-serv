@@ -1,8 +1,8 @@
-import { Players } from './controller.js';
-import * as Deck from './deck.js';
-import * as Table from './table.js';
+import { Players } from '../Controller.js';
+import * as Deck from '../Deck.js';
+import * as Table from '../Table.js';
 
-export default async function Texas() {
+export default async function Omaha(variation) {
 	// Reset Table
 	Table.prepareForNewRound();
 
@@ -11,7 +11,7 @@ export default async function Texas() {
 
 	// Two cards face down to each player, first betting round
 	if (Players.activeCount() > 1) {
-		await Table.dealToPlayers(2);
+		await Table.dealToPlayers(4);
 		await Table.bettingRound(1);
 	}
 
@@ -34,8 +34,9 @@ export default async function Texas() {
 	}
 
 	// Player selects the five cards to show
-	await Table.selectCards();
+	// Player selects the five cards to show
+	await Table.selectCards('2M/3T', 'Must select 2 of your cards, 3 from table');
 
 	// Calculate winner, do accounting, etc.
-	await Table.calculateWinner();
+	await Table.calculateWinner(variation);
 }

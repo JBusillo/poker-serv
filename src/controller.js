@@ -1,15 +1,26 @@
 import { EventEmitter } from 'events';
-import { io } from './server.js';
+import { io } from './Server.js';
 import fs from 'fs';
-import config from './config.js';
+import config from './Config.js';
 import winston from 'winston';
-import _Players from './players.js';
-import { AccountingInit } from './accounting.js';
+import _Players from './Players.js';
+import { AccountingInit } from './Accounting.js';
 import NewDeal from './NewDeal.js';
 
-export const ANTE_WAIT = 30000;
-export const DEALER_WAIT = 1000;
-export let globals = { gameInitialized: false, pauseGame: false };
+export let globals = {
+	gameInitialized: false,
+	pauseGame: false,
+	tableCards: [],
+	gameInProgress: false,
+
+	// Wait Constants
+	ANTE_WAIT: 120000,
+	DEALER_SHOW_WAIT: 1000,
+	DEALER_WAIT: 120000,
+	BET_WAIT: 120000,
+	SHOW_WAIT: 120000,
+	DISCARD_WAIT: 120000,
+};
 export let Players = [];
 export let Accounting = null;
 
@@ -51,6 +62,11 @@ export function bcastPlayerMessage(uuid, message) {
 	emitEasyAll('PlayerShow', { uuid, message });
 }
 
+export function disconnect(sid) {
+	let sock = SockMap.get(sid);
+	sock.disconnect(true);
+}
+
 export function bcastPlayers() {
 	io.emit('PokerMessage', [{ type: 'Players', players: Array.from(Players) }]);
 }
@@ -75,6 +91,12 @@ export function initCommunication() {
 		socket.on('ClientMessage', (indata, fn) => {
 			let data = { ...indata, sid: socket.client.id };
 			winston.info(`initCommunication/Client Message ${JSON.stringify(data)}`);
+			// flush queue if not sign-in request, and the player isn't signed in
+			// flush queue if not sign-in request, and the player isn't signed in
+			// flush queue if not sign-in request, and the player isn't signed in
+			// flush queue if not sign-in request, and the player isn't signed in
+			// flush queue if not sign-in request, and the player isn't signed in
+			// flush queue if not sign-in request, and the player isn't signed in
 			switch (data.msgType) {
 				case 'addPlayer':
 					Players.add(data, fn);
@@ -107,10 +129,18 @@ export function initCommunication() {
 					gameResume();
 					break;
 				case 'abort':
-					process.exit(0);
+					doAbort();
 					break;
 				default:
 					winston.info(`initCommunication/Unrecognized msgType: ${data.msgType}`);
+			}
+		});
+		socket.on('disconnect', (reason) => {
+			for (let p of Players) {
+				if (p.sockid === socket.client.id) {
+					console.log(`player ${p.name} disconnected, reason: ${reason}`);
+					p.setStatus({ status: 'Disconnected' }, true);
+				}
 			}
 		});
 	});
@@ -123,13 +153,21 @@ function doDump(data, fn) {
 
 function goOnBreak(data, fn) {
 	let player = Players.getPlayerBySockId(data.sid);
-	player.setStatus({ isOnBreakNextRound: true }, true);
+	if (player) {
+		if (!globals.gameInProgress) player.setStatus({ isOnBreak: true, status: 'On Break' });
+		player.setStatus({ isOnBreakNextRound: true }, true);
+		console.log(`Controller:goOnBreak player ${player.name}`);
+	}
 	if (fn) fn();
 }
 
 function goOffBreak(data, fn) {
 	let player = Players.getPlayerBySockId(data.sid);
-	player.setStatus({ isOnBreakNextRound: false }, true);
+	if (player) {
+		if (!globals.gameInProgress) player.setStatus({ isOnBreak: false, status: 'Ready' });
+		player.setStatus({ isOnBreakNextRound: false }, true);
+		console.log(`Controller:goOffBreak player ${player.name}`);
+	}
 	if (fn) fn();
 }
 
@@ -139,4 +177,9 @@ function gamePause() {
 
 function gameResume() {
 	resumeEvent.emit('resume');
+}
+
+function doAbort() {
+	emitEasyAll('Reload', {});
+	process.exit(0);
 }

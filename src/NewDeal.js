@@ -1,8 +1,6 @@
 //import { EventEmitter } from 'events';
 
 import {
-	ANTE_WAIT,
-	DEALER_WAIT,
 	globals,
 	bcastGameMessage,
 	Accounting,
@@ -12,38 +10,53 @@ import {
 	pupTag,
 	pauseGame,
 	resumeEvent,
-} from './controller.js';
+} from './Controller.js';
+
 import winston from 'winston';
-import * as Deck from './deck.js';
-import Texas from './texas.js';
+import * as Deck from './Deck.js';
+import Texas from './games/Texas.js';
+import Omaha from './games/Omaha.js';
 
 let dealer = null;
 
 export let dealerData = null;
 
-export default async function NewDeal() {
-	//Reset Pot
-
+export default async function NewDeal(data) {
+	// Pause/Resume game
 	if (globals.pauseGame) {
 		bcastGameMessage(`Game is Paused`);
+		emitEasyAll('PauseGame', {});
+
 		await new Promise((resolve) => {
-			globals.pauseGame = false;
 			resumeEvent.once('resume', resolve);
 		});
+		globals.pauseGame = false;
+		bcastGameMessage(`Game is Resumed`);
+		emitEasyAll('ResumeGame', {});
 	}
+
+	emitEasyAll('PlayerShow', { clearAllMessages: true });
+	emitEasyAll('GameResults', { show: false });
+
+	if (Players.availableToPlayCount() < 2) {
+		emitEasySid(data.sid, 'InfoMsg', {
+			message: 'Stop playing with yourself!!!',
+		});
+		emitEasyAll('MyActions', {
+			action: 'NewGame',
+		});
+		return;
+	}
+
+	Players.clearCards();
 
 	Accounting.newDeal();
 
-	//Reset any player counters
-	for (let i = 0; i < Players.length; i++) {
-		let player = Players[i];
-		player.setStatus({ isSidePot: false, sidePotAmount: 0 });
-	}
-
 	globals.gameInitialized = true;
 
-	// freeze -  freezes who can participate in this upcoming game
-	Players.freeze();
+	// freeze
+	Players.updateBreak();
+	globals.gameInProgress = true;
 
 	emitEasyAll('MyActions', {
 		action: 'Ready',
@@ -52,29 +65,60 @@ export default async function NewDeal() {
 	let haveDealer = false;
 	while (!haveDealer) {
 		bcastGameMessage(`Determining dealer`);
+		if (Players.availableToPlayCount() < 2) {
+			bcastGameMessage('Waiting for more players to join');
+			emitEasyAll('MyActions', {
+				action: 'NewGame',
+			});
+			return;
+		}
 
 		// Clear player cards
 		Players.forEach((player) => player.clearCards());
 
 		if (dealer) {
-			dealer = Players.getNextActivePlayer();
+			let tempDlr = Players.getNextActivePlayer();
+			if (tempDlr) {
+				dealer = Players.getNextActivePlayer();
+			} else {
+				bcastGameMessage('Waiting for more players to join');
+				emitEasyAll('MyActions', {
+					action: 'NewGame',
+				});
+				return;
+			}
 		} else {
 			bcastGameMessage(`Determine first dealer by drawing for an Ace`);
-			await getFirstDealer().then((ret) => {
-				winston.debug(`getFirstDealer/Promise/Resolve`);
-				dealer = ret;
-			});
+			dealer = await getFirstDealer(); //.then((ret) => {
+			// 	winston.debug(`getFirstDealer/Promise/Resolve`);
+			// 	dealer = ret;
+			// });
 		}
 
 		// Potential next dealer.  He can "pass"
 		bcastGameMessage(`Dealer is ${dealer.name}; waiting for him/her to set game/ante or pass`);
 		await DealerDialog(dealer).then((data) => {
 			winston.debug(`round.js - DealerDialog resolved`);
-			if (data.accept) {
-				dealer.setStatus({ status: 'in', isDealer: true, lastAction: 'dealt' });
-				dealerData = data;
-				haveDealer = true;
-				emitEasyAll('InfoGame', { game: dealerData.game });
+			switch (data.action) {
+				case 'accept':
+					dealer.setStatus({ status: 'in', isDealer: true, lastAction: 'dealt' });
+					dealerData = data;
+					haveDealer = true;
+					emitEasyAll('InfoGame', { game: dealerData.game });
+					break;
+				case 'timeout':
+					console.log(`player ${player.name} put on break in Dealer dialog`);
+					player.setStatus(
+						{ status: 'On Break', lastAction: 'Time-Out', isOnBreak: true, highLight: false },
+						true
+					);
+					break;
+				case 'pass':
+					player.setStatus(
+						{ status: 'On Break', lastAction: 'pass', isOnBreak: true, highLight: false },
+						true
+					);
+					break;
 			}
 		});
 	}
@@ -93,8 +137,15 @@ export default async function NewDeal() {
 		winston.debug(`round.js - getAntes resolved`);
 	});
 
-	// At this time, players with status "in" have anted and will be included in the following game
+	if (Players.availableToPlayCount() < 2) {
+		bcastGameMessage('Not enough players anted!  No deal.');
+		emitEasyAll('MyActions', {
+			action: 'NewGame',
+		});
+		return;
+	}
 
+	// At this time, players with status "in" have anted and will be included in the following game
 	// Ready to play.  Go to game module.
 	winston.info(`Entering Game ${dealerData.game}`);
 	switch (dealerData.game) {
@@ -102,12 +153,14 @@ export default async function NewDeal() {
 			Texas();
 			break;
 		case 'Obama-ha':
+			Omaha();
 			break;
 		case 'Obama-ha High Chicago':
 			break;
 		case 'Obama-ha Low Chicago':
 			break;
 		case 'Pineapple':
+			Texas('Pineapple');
 			break;
 		case 'Five Card Draw':
 			break;
@@ -123,11 +176,23 @@ export default async function NewDeal() {
 
 async function DealerDialog(dealer) {
 	let promise = new Promise((resolve, reject) => {
-		emitEasySid(dealer.sockid, 'Dialog', { dialog: 'Dealer', chips: dealer.chips }, (data) => {
-			resolve(data);
-		});
-		pupTag(`dealerdialog.${dealer.uuid}`);
+		let timeoutId = setTimeout(() => {
+			resolve({ action: 'timeout' });
+		}, globals.DEALER_WAIT);
+		emitEasySid(
+			dealer.sockid,
+			'MyActions',
+			{
+				miniDialog: 'Dealer',
+				chips: dealer.chips,
+			},
+			(data) => {
+				clearTimeout(timeoutId);
+				resolve(data);
+			}
+		);
 	});
+	pupTag(`dealerdialog.${dealer.uuid}`);
 	return await promise;
 }
 
@@ -152,7 +217,7 @@ async function getFirstDealer() {
 					aceFound = true;
 					player.dealer = true;
 					bcastGameMessage(`We have a dealer: ${player.name}`);
-					await sleep(DEALER_WAIT);
+					await sleep(globals.DEALER_SHOW_WAIT);
 					Players.forEach((player) => player.clearCards());
 					return player;
 				}
@@ -168,26 +233,22 @@ async function getAntes() {
 	let acceptResponses = true; // Set to false after time-out period
 	let promises = [];
 	Players.forEach((player) => {
-		if (player.uuid !== dealer.uuid) {
+		if (player.uuid !== dealer.uuid && !player.isOnBreak) {
 			let promise = new Promise((resolve, reject) => {
-				setTimeout(() => {
+				let timeoutId = setTimeout(() => {
 					resolve({ action: 'timeout' });
-				}, ANTE_WAIT);
+				}, globals.ANTE_WAIT);
 				player.setStatus({ status: 'Ante', highLight: true }, true);
-
-				let actions = [];
-				actions.push({
-					type: 'Dialog',
-					dialog: 'Ante',
-					chips: dealer.chips,
-					game: dealerData.game,
-					anteAmount: dealerData.anteAmount,
-				});
 
 				emitEasySid(
 					player.sockid,
-					'Dialog',
-					{ dialog: 'Ante', chips: dealer.chips, game: dealerData.game, anteAmount: dealerData.anteAmount },
+					'MyActions',
+					{
+						miniDialog: 'Ante',
+						chips: player.chips,
+						game: dealerData.game,
+						anteAmount: dealerData.anteAmount,
+					},
 					(data) => {
 						// if promise was resolved/reject (should only happen on time-out), ignore any response
 						if (acceptResponses) {
@@ -210,6 +271,7 @@ async function getAntes() {
 									);
 									break;
 								case 'timeout':
+									console.log(`player ${player.name} put on break in Ante dialog`);
 									player.setStatus(
 										{ status: 'On Break', lastAction: 'Time-Out', isOnBreak: true, highLight: false },
 										true
@@ -218,7 +280,7 @@ async function getAntes() {
 									break;
 								default:
 							}
-
+							clearTimeout(timeoutId);
 							resolve({ player, result: data.action });
 						}
 					}

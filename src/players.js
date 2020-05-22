@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { bcastGameMessage, emitEasyAll, emitEasySid, globals } from './controller.js';
+import { emitEasyAll, emitEasySid, disconnect, globals } from './Controller.js';
 import winston from 'winston';
 import Player from './Player.js';
 
@@ -15,29 +15,28 @@ _Players.prototype.add = function (data, cb) {
 	try {
 		winston.info(`'addPlayer ${JSON.stringify(data)}`);
 
-		// Generate uuid if none passed
-		let uuid = data.uuid ? data.uuid : uuidv4();
-
-		let player = this.getPlayerByUuid(uuid);
+		let player = this.getPlayerByUuid(data.uuid);
 
 		// Give this player a list of all current players
 		emitEasySid(data.sid, 'Players', { players: Array.from(this) });
 
 		if (!player) {
-			winston.info(`'adding player to table, uuid = ${uuid}`);
+			winston.info(`'adding player to table, uuid = ${data.uuid}`);
 
-			player = new Player(uuid, data.player, data.sid);
+			player = new Player(data.uuid, data.player, data.sid);
 			this.push(player);
-			emitEasySid(data.sid, 'InfoName', { name: player.name });
 
 			// Give everyone (including this player) this new player
 			player.refreshNewPlayer();
+			player.setActions({ action: 'Initial', gameInit: globals.gameInitialized });
+		} else {
+			disconnect(player.sockid);
+			player.setStatus({ sockid: data.sid });
+			player.setActions({ action: 'Initial', gameInit: globals.gameInitialized, onBreak: true });
+			player.refreshPlayerStatus();
 		}
 
-		player.setActions({ action: 'Initial', gameInit: globals.gameInitialized, onBreak: player.isOnBreak });
-
-		// Send the new player its assigned uuid
-		cb({ uuid });
+		cb();
 	} catch (e) {
 		winston.error(`Error in player.add ${e.message}`);
 	}
@@ -45,7 +44,7 @@ _Players.prototype.add = function (data, cb) {
 
 _Players.prototype.clearCards = function () {
 	this.forEach((player) => {
-		player.setStatus({ cards: [], dummyCards: [] });
+		player.setStatus({ cards: [], dummyCards: [], totalBetThisRound: 0 });
 	});
 	// And clear my own cards
 	emitEasyAll('MyCards', {
@@ -53,8 +52,9 @@ _Players.prototype.clearCards = function () {
 	});
 
 	// And clear table cards
+	globals.tableCards = [];
 	emitEasyAll('TableCards', {
-		cards: [],
+		cards: globals.tableCards,
 	});
 
 	// And clear cards dealt to players
@@ -65,24 +65,24 @@ _Players.prototype.refreshAll = function () {
 	emitEasyAll('Players', { players: Array.from(this) });
 };
 
-//// Fix This -- no direct assignments!!!!
 _Players.prototype.getNextActivePlayer = function () {
-	let p = this.findIndex((e) => e.isDealer);
-	this[p].isDealer = false;
+	let playerIx = this.findIndex((e) => e.isDealer);
 
-	for (let i = p + 1; i < this.length; i++) {
+	for (let i = playerIx + 1; i < this.length; i++) {
 		if (!this[i].isOnBreak) {
 			this[i].isDealer = true;
+			this[i].setStatus({ isDealer: true });
 		}
 		return this[i];
 	}
-	for (let i = 0; i <= p; i++) {
+	for (let i = 0; i <= playerIx; i++) {
 		if (!this[i].isOnBreak) {
-			this[i].isDealer = true;
+			this[i].setStatus({ isDealer: true });
 		}
 		return this[i];
 	}
-	return this[0];
+	console.log(`Players.getNextActivePlayer No Dealer Found!!`);
+	return null;
 };
 
 _Players.prototype.getPlayerByUuid = function (uuid) {
@@ -98,21 +98,23 @@ _Players.prototype.activeCount = function () {
 	this.forEach((player) => {
 		if (['in', 'side-pot'].includes(player.status)) count++;
 	});
+	console.log(`Players.activeCount: ${count}`);
 	return count;
 };
 
-_Players.prototype.activePlayers = function () {
-	let players = [];
+_Players.prototype.availableToPlayCount = function () {
+	let count = 0;
 	this.forEach((player) => {
-		if (['in', 'side-pot'].includes(player.status)) players.push(player);
+		if (!player.isOnBreakNextRound && player.chips > 0) count++;
 	});
-	players;
+	return count;
 };
 
-_Players.prototype.freeze = function freeze() {
+_Players.prototype.updateBreak = function () {
 	this.forEach((player) => {
 		if (player.isOnBreakNextRound) {
-			player.setStatus({ isOnBreak: true, isOnBreakNextRound: true }, true);
+			player.setStatus({ status: 'On Break', isOnBreak: true, isOnBreakNextRound: true }, true);
+			console.log(`Players:freeze ${player.name} put on Break`);
 		} else {
 			player.setStatus({ status: 'Ready', isOnBreak: false, isOnBreakNextRound: false }, true);
 		}
