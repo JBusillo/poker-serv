@@ -139,7 +139,7 @@ export function initCommunication() {
 			for (let p of Players) {
 				if (p.sockid === socket.client.id) {
 					console.log(`player ${p.name} disconnected, reason: ${reason}`);
-					p.setStatus({ status: 'Disconnected' }, true);
+					p.setStatus({ status: 'Disconnected', isOnBreak: true, isOnBreakNextRound: true }, true);
 				}
 			}
 		});

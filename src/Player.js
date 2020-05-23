@@ -1,5 +1,4 @@
 import { emitEasyAll, emitEasySid } from './Controller.js';
-import winston from 'winston';
 
 export default function Player(uuid, name, sockid) {
 	this.uuid = uuid;
@@ -32,34 +31,11 @@ export default function Player(uuid, name, sockid) {
 }
 
 Player.prototype.setStatus = function (stat, refresh) {
-	if (typeof stat.sockid !== 'undefined') this.sockid = stat.sockid;
-
-	if (typeof stat.chips !== 'undefined') this.chips = stat.chips;
-	if (typeof stat.buyIn !== 'undefined') this.buyIn = stat.buyIn;
-	if (typeof stat.raise !== 'undefined') this.raise = stat.raise;
-	if (typeof stat.paid !== 'undefined') this.paid = stat.paid;
-	if (typeof stat.totalBetThisRound !== 'undefined') this.totalBetThisRound = stat.totalBetThisRound;
-
-	if (typeof stat.isDealer !== 'undefined') this.isDealer = stat.isDealer;
-	if (typeof stat.status !== 'undefined') this.status = stat.status;
-	if (typeof stat.lastAction !== 'undefined') this.lastAction = stat.lastAction;
-	if (typeof stat.cards !== 'undefined') this.cards = stat.cards;
-	if (typeof stat.dummyCards !== 'undefined') this.dummyCards = stat.dummyCards;
-
-	if (typeof stat.buttons !== 'undefined') this.buttons = stat.buttons;
-	if (typeof stat.highLight !== 'undefined') this.highLight = stat.highLight;
-	if (typeof stat.playedCards !== 'undefined') this.playedCards = stat.playedCards;
-
-	if (typeof stat.hand !== 'undefined') this.hand = stat.hand;
-	if (typeof stat.handValue !== 'undefined') this.handValue = stat.handValue;
-	if (typeof stat.isOnBreak !== 'undefined') {
-		this.isOnBreak = stat.isOnBreak;
-		this.isOnBreakNextRound = stat.isOnBreakNextRound;
-	}
-	if (typeof stat.isOnBreakNextRound !== 'undefined') this.isOnBreakNextRound = stat.isOnBreakNextRound;
-	if (typeof stat.isSidePot !== 'undefined') this.isSidePot = stat.isSidePot;
-	if (typeof stat.sidePotAmount !== 'undefined') this.sidePotAmount = stat.sidePotAmount;
-	if (typeof stat.dealSequence !== 'undefined') this.dealSequence = stat.dealSequence;
+	Object.assign(this, stat);
+	// 	if (typeof stat.isOnBreak !== 'undefined') {
+	// 	this.isOnBreak = stat.isOnBreak;
+	// 	this.isOnBreakNextRound = stat.isOnBreakNextRound;
+	// }
 
 	if (refresh) this.refreshPlayerStatus();
 };

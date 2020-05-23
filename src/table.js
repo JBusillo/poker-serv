@@ -378,23 +378,6 @@ function processSelectResult(player, result) {
 			);
 			emitEasyAll('PlayerCards', { uuid: player.uuid, cards: player.cards });
 			emitEasyAll('PlayerShow', { uuid: player.uuid, cards: player.playedCards, hand: scoreResult.hand });
-
-			// add to hands table for scoring
-			playerData = {
-				uuid: player.uuid,
-				name: player.name,
-				isSidePot: player.isSidePot,
-				sidePotAmount: player.sidePotAmount,
-				playerWinAmount: 0,
-				playedCards: player.playedCards,
-			};
-
-			handEntry = hands.find((e) => e.handValue === scoreResult.handValue);
-			if (handEntry) {
-				handEntry.players.push(playerData);
-			} else {
-				hands.push({ hand: scoreResult.hand, handValue: scoreResult.handValue, players: [playerData] });
-			}
 			break;
 		case 'fold':
 			player.setStatus({ status: 'fold', lastAction: 'fold', highLight: false }, true);
@@ -420,16 +403,38 @@ export function calculateWinner(scoreType) {
 
 function calculateHandData(scoreType) {
 	console.log(`hands table   ${JSON.stringify(hands)}`);
-
+	let handEntry;
+	let playerData;
 	for (const player of tablePlayers) {
 		if (['in', 'side-pot'].includes(player.status)) {
-			playedCards: result.cards,
-			lastAction: 'show',
-			highLight: false,
-			hand: scoreResult.hand,
-			handValue: scoreResult.handValue,
+			playerData = {
+				uuid: player.uuid,
+				name: player.name,
+				isSidePot: player.isSidePot,
+				sidePotAmount: player.sidePotAmount,
+				playerWinAmount: 0,
+				playedCards: player.playedCards,
+			};
+
+			handEntry = hands.find((e) => e.handValue === player.handValue);
+			if (handEntry) {
+				handEntry.players.push(playerData);
+			} else {
+				hands.push({ hand: player.hand, handValue: player.handValue, players: [playerData] });
+			}
 		}
 	}
+
+	// High/Low Chicago
+	// Determine High/Low Spade and associated player
+	//  if there is a player with Chicago
+	//     player wins minimum of (sidepot, 50% of pot)
+	//     this will increase playerWinAmount
+
+	//  tp accomodate when a player has both the high-hand and Chicago
+	//     high hand must increment (+=) playerWinAmount
+	//  to accomodate when a side-potted player also has a high-hand
+	//     high hand must take into account playerWinAmount when calculating side-pot payouts
 
 	// sort hands table, reverse order (high to low)
 	hands.sort((a, b) => {
@@ -446,6 +451,7 @@ function calculateHandData(scoreType) {
 			// distRounding contains amount to distribute, and remainder to distribute sequentially,
 			// such that all players receive multiples of 5 cents.
 			// returns { potSplit, nickelsToSplit };
+
 			let distRounding = roundDist(remainingPot, theHand.players.length);
 
 			// allocate pot to players, limiting sidepot wins to sidepot amounts
