@@ -1,6 +1,6 @@
 import { Players } from '../Controller.js';
-import * as Deck from '../Deck.js';
-import * as Table from '../Table.js';
+import * as Deck from '../support/Deck.js';
+import * as Table from '../table/Table.js';
 
 export default async function Texas(variation) {
 	// Reset Table

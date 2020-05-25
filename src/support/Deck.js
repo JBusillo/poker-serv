@@ -1,9 +1,23 @@
 import winston from 'winston';
-import { bcastGameMessage } from './Controller.js';
-import { PokerDeck } from './Pokerdeck.js';
+import { bcastGameMessage } from '../Controller.js';
 
-let deck = [];
+let PokerDeck = makeDeck();
 let deckPointer = 0;
+let deck = [];
+
+function makeDeck() {
+	let allCards = [];
+	const suits = ['H', 'C', 'D', 'S'];
+	const values = ['02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14'];
+
+	for (const elSuit of suits) {
+		for (const elValue of values) {
+			allCards.push(elSuit + elValue);
+		}
+	}
+
+	return Array.from(allCards);
+}
 
 export function shuffle() {
 	bcastGameMessage(`Shuffling the deck...`);
@@ -28,9 +42,9 @@ export function shuffle() {
 	deckPointer = 0;
 
 	let disp = '';
-	deck.forEach((cd) => {
+	for (const cd of deck) {
 		disp = disp + cd + ':';
-	});
+	}
 	winston.info(`Shuffled Deck: %s`, disp);
 
 	return array;

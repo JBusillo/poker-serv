@@ -43,9 +43,9 @@ _Players.prototype.add = function (data, cb) {
 };
 
 _Players.prototype.clearCards = function () {
-	this.forEach((player) => {
+	for (const player of this) {
 		player.setStatus({ cards: [], dummyCards: [], totalBetThisRound: 0 });
-	});
+	}
 	// And clear my own cards
 	emitEasyAll('MyCards', {
 		cards: [],
@@ -95,23 +95,22 @@ _Players.prototype.getPlayerBySockId = function (sockId) {
 
 _Players.prototype.activeCount = function () {
 	let count = 0;
-	this.forEach((player) => {
+	for (const player of this) {
 		if (['in', 'side-pot'].includes(player.status)) count++;
-	});
-	console.log(`Players.activeCount: ${count}`);
+	}
 	return count;
 };
 
 _Players.prototype.availableToPlayCount = function () {
 	let count = 0;
-	this.forEach((player) => {
+	for (const player of this) {
 		if (!player.isOnBreakNextRound && player.chips > 0) count++;
-	});
+	}
 	return count;
 };
 
 _Players.prototype.updateBreak = function () {
-	this.forEach((player) => {
+	for (const player of this) {
 		if (player.isOnBreakNextRound) {
 			player.setStatus({ status: 'On Break', isOnBreak: true, isOnBreakNextRound: true }, true);
 			console.log(`Players:freeze ${player.name} put on Break`);
@@ -119,7 +118,7 @@ _Players.prototype.updateBreak = function () {
 			player.setStatus({ status: 'Ready', isOnBreak: false, isOnBreakNextRound: false }, true);
 		}
 		this.refreshAll();
-	});
+	}
 };
 
 function sleep(ms) {

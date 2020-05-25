@@ -1,7 +1,7 @@
 import http from 'http';
 import SocketIo from 'socket.io';
-import config from './Config.js';
-import { winster } from './Winster.js';
+import config from './config/Config.js';
+import { winster } from './support/Winster.js';
 import winston from 'winston';
 import { initCommunication } from './Controller.js';
 

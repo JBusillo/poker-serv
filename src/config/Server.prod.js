@@ -1,4 +1,4 @@
-import { startUp } from './Server.js';
+import { startUp } from '../Server.js';
 import cfg from './Config.js';
 
 export const config = {

@@ -35,7 +35,6 @@ export default function score(cards) {
 	let isPair = grouping.length === 4;
 
 	let strPairs = getPairs(pairs);
-	console.log(`strPairs   ${JSON.stringify(strPairs)}`);
 
 	//Royal Flush '11-00-00-00-00-00'
 	if (isRoyalFlush) {
@@ -83,9 +82,9 @@ export default function score(cards) {
 	function group() {
 		let pairs = [];
 		let arr = Array.from(ranksAceHigh);
-		arr.forEach((el) => {
+		for (const el of arr) {
 			if (!pairs.includes('1-' + el)) pairs.push('1-' + el);
-		});
+		}
 		let x = 0;
 		while (x < arr.length) {
 			while (arr.length > x + 1 && arr[x] === arr[x + 1]) {

@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { io } from './Server.js';
 import fs from 'fs';
-import config from './Config.js';
+import config from './config/Config.js';
 import winston from 'winston';
 import _Players from './Players.js';
 import { AccountingInit } from './Accounting.js';

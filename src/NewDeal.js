@@ -8,12 +8,11 @@ import {
 	emitEasyAll,
 	emitEasySid,
 	pupTag,
-	pauseGame,
 	resumeEvent,
 } from './Controller.js';
 
 import winston from 'winston';
-import * as Deck from './Deck.js';
+import * as Deck from './support/Deck.js';
 import Texas from './games/Texas.js';
 import Omaha from './games/Omaha.js';
 
@@ -74,7 +73,7 @@ export default async function NewDeal(data) {
 		}
 
 		// Clear player cards
-		Players.forEach((player) => player.clearCards());
+		for (const player of Players) player.clearCards();
 
 		if (dealer) {
 			let tempDlr = Players.getNextActivePlayer();
@@ -218,7 +217,7 @@ async function getFirstDealer() {
 					player.dealer = true;
 					bcastGameMessage(`We have a dealer: ${player.name}`);
 					await sleep(globals.DEALER_SHOW_WAIT);
-					Players.forEach((player) => player.clearCards());
+					for (const player of Players) player.clearCards();
 					return player;
 				}
 			}
@@ -232,7 +231,7 @@ async function getFirstDealer() {
 async function getAntes() {
 	let acceptResponses = true; // Set to false after time-out period
 	let promises = [];
-	Players.forEach((player) => {
+	for (const player of Players) {
 		if (player.uuid !== dealer.uuid && !player.isOnBreak) {
 			let promise = new Promise((resolve, reject) => {
 				let timeoutId = setTimeout(() => {
@@ -288,7 +287,7 @@ async function getAntes() {
 			});
 			promises.push(promise);
 		}
-	});
+	}
 
 	return await Promise.all(promises);
 }
