@@ -6,6 +6,7 @@ import winston from 'winston';
 import _Players from './Players.js';
 import { AccountingInit } from './Accounting.js';
 import NewDeal from './NewDeal.js';
+import Reconnect from '../Reconnect.js'
 
 export let globals = {
 	gameInitialized: false,
@@ -14,12 +15,12 @@ export let globals = {
 	gameInProgress: false,
 
 	// Wait Constants
-	ANTE_WAIT: 120000,
+	ANTE_WAIT: 9120000,
 	DEALER_SHOW_WAIT: 1000,
-	DEALER_WAIT: 120000,
-	BET_WAIT: 120000,
-	SHOW_WAIT: 120000,
-	DISCARD_WAIT: 120000,
+	DEALER_WAIT: 9120000,
+	BET_WAIT: 9120000,
+	SHOW_WAIT: 9120000,
+	DISCARD_WAIT: 9120000,
 };
 export let Players = [];
 export let Accounting = null;
@@ -39,6 +40,7 @@ export async function emitEasyAll(type, data, ...args) {
 }
 
 export function emitEasySid(sid, type, data, fn) {
+	saveLastMessageSid(sid, type, data, fn);
 	let sock = SockMap.get(sid);
 
 	let actions = [];
@@ -67,6 +69,7 @@ export function disconnect(sid) {
 	sock.disconnect(true);
 }
 
+// ? is used ?
 export function bcastPlayers() {
 	io.emit('PokerMessage', [{ type: 'Players', players: Array.from(Players) }]);
 }
@@ -139,7 +142,10 @@ export function initCommunication() {
 			for (let p of Players) {
 				if (p.sockid === socket.client.id) {
 					console.log(`player ${p.name} disconnected, reason: ${reason}`);
-					p.setStatus({ status: 'Disconnected', isOnBreak: true, isOnBreakNextRound: true }, true);
+					p.setStatus(
+						{ status: 'Disconnected', isDisconnected: true, isOnBreak: true, isOnBreakNextRound: true },
+						true
+					);
 				}
 			}
 		});
@@ -183,3 +189,10 @@ function doAbort() {
 	emitEasyAll('Reload', {});
 	process.exit(0);
 }
+
+
+export function saveLastMessageSid(sid, type, data, fn) { }
+
+export function saveLastMessageAll(sid, type, data, fn) { }
+
+export function reconnectPlayer()

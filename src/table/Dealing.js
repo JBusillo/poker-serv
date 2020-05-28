@@ -16,7 +16,7 @@ export async function dealToPlayers(count) {
 		for (let player of tablePlayers) {
 			if (player.status === 'in') {
 				player.cards.push(Deck.draw().short);
-				player.setDummyCards('XXX');
+				player.setDummyCards('X02');
 				// Show updated cards to player
 				emitEasySid(player.sockid, 'MyCards', {
 					cards: player.cards,

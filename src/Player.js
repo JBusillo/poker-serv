@@ -28,6 +28,9 @@ export default function Player(uuid, name, sockid) {
 	this.isSidePot = false;
 	this.sidePotAmount = 0;
 	this.dealSequence = 0;
+
+	this.isDisconnected = false;
+	this.lastMessages = [];
 }
 
 Player.prototype.setStatus = function (stat, refresh) {
