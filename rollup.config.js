@@ -2,7 +2,7 @@
 import commonjs from '@rollup/plugin-commonjs';
 import visualizer from 'rollup-plugin-visualizer';
 import json from '@rollup/plugin-json';
-import ignore from 'rollup-plugin-ignore';
+//import ignore from 'rollup-plugin-ignore';
 
 //import babel from '@rollup/plugin-babel';
 

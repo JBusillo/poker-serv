@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { bcastGameMessage } from '../Controller.js';
+import { bcastGameMessage } from './Controller.js';
 
 let PokerDeck = makeDeck();
 let deckPointer = 0;
@@ -48,10 +48,6 @@ export function shuffle() {
 	winston.info(`Shuffled Deck: %s`, disp);
 
 	return array;
-}
-
-function burn() {
-	draw();
 }
 
 export function draw() {
@@ -128,7 +124,6 @@ function getCardLongDescription(short) {
 }
 
 function getCardMiniDescription(short) {
-	let desc = '';
 	let rank = '23456789JQKA'[Number(short.substr(1))];
 	switch (short.substr(0, 1)) {
 		case 'C':

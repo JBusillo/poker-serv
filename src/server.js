@@ -3,7 +3,7 @@ import SocketIo from 'socket.io';
 import config from './config/Config.js';
 import { winster } from './support/Winster.js';
 import winston from 'winston';
-import { initCommunication } from './Controller.js';
+import { initCommunication } from './support/Controller.js';
 
 export let app;
 export let server;
@@ -21,7 +21,8 @@ export async function startUp() {
 	}
 
 	app = await http.createServer(() => {});
-	io = await SocketIo(app);
+	//	io = await SocketIo(app);
+	io = await new SocketIo(app, { pingTimeout: 120000 });
 
 	winston.info(`Node Version`);
 	winston.info(`Current Directory is ${__dirname}`);

@@ -1,7 +1,6 @@
 //import { EventEmitter } from 'events';
 
 import {
-	globals,
 	bcastGameMessage,
 	Accounting,
 	Players,
@@ -9,7 +8,9 @@ import {
 	emitEasySid,
 	pupTag,
 	resumeEvent,
-} from './Controller.js';
+} from './support/Controller.js';
+
+import { globals } from './support/globals.js';
 
 import winston from 'winston';
 import * as Deck from './support/Deck.js';
@@ -24,14 +25,14 @@ export default async function NewDeal(data) {
 	// Pause/Resume game
 	if (globals.pauseGame) {
 		bcastGameMessage(`Game is Paused`);
-		emitEasyAll('PauseGame', {});
+		emitEasyAll('PauseGame', { pause: true });
 
 		await new Promise((resolve) => {
 			resumeEvent.once('resume', resolve);
 		});
 		globals.pauseGame = false;
 		bcastGameMessage(`Game is Resumed`);
-		emitEasyAll('ResumeGame', {});
+		emitEasyAll('PauseGame', { pause: false });
 	}
 
 	emitEasyAll('PlayerShow', { clearAllMessages: true });

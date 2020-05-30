@@ -1,4 +1,4 @@
-import { Players } from '../Controller.js';
+import { Players } from '../support/Controller.js';
 import * as Deck from '../support/Deck.js';
 import * as Table from '../table/Table.js';
 

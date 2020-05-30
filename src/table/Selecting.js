@@ -1,4 +1,6 @@
-import { globals, Players, emitEasyAll, emitEasySid, bcastGameMessage, pupTag } from '../Controller.js';
+import { Players, emitEasyAll, emitEasySid, bcastGameMessage, pupTag } from '../support/Controller.js';
+import { globals } from '../support/globals.js';
+
 import score from './Scoring.js';
 import winston from 'winston';
 import { getTablePlayers, setHands } from './Table.js';
@@ -69,7 +71,7 @@ function selectDialog(player, rule, prompt) {
 }
 
 function processSelectResult(player, result) {
-	let scoreResult, playerData, handEntry;
+	let scoreResult;
 	switch (result.action) {
 		case 'ok':
 			scoreResult = score(result.cards);

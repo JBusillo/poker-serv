@@ -1,27 +1,14 @@
 import { EventEmitter } from 'events';
-import { io } from './Server.js';
+import { io } from '../Server.js';
 import fs from 'fs';
-import config from './config/Config.js';
+import config from '../config/Config.js';
 import winston from 'winston';
-import _Players from './Players.js';
-import { AccountingInit } from './Accounting.js';
-import NewDeal from './NewDeal.js';
-import Reconnect from '../Reconnect.js'
+import _Players from '../Players.js';
+import { AccountingInit } from '../Accounting.js';
+import NewDeal from '../NewDeal.js';
+import * as Reconnect from './Reconnect.js';
+import { globals } from './globals';
 
-export let globals = {
-	gameInitialized: false,
-	pauseGame: false,
-	tableCards: [],
-	gameInProgress: false,
-
-	// Wait Constants
-	ANTE_WAIT: 9120000,
-	DEALER_SHOW_WAIT: 1000,
-	DEALER_WAIT: 9120000,
-	BET_WAIT: 9120000,
-	SHOW_WAIT: 9120000,
-	DISCARD_WAIT: 9120000,
-};
 export let Players = [];
 export let Accounting = null;
 
@@ -40,7 +27,7 @@ export async function emitEasyAll(type, data, ...args) {
 }
 
 export function emitEasySid(sid, type, data, fn) {
-	saveLastMessageSid(sid, type, data, fn);
+	Reconnect.saveLastMessageSid(sid, type, data, fn);
 	let sock = SockMap.get(sid);
 
 	let actions = [];
@@ -94,12 +81,6 @@ export function initCommunication() {
 		socket.on('ClientMessage', (indata, fn) => {
 			let data = { ...indata, sid: socket.client.id };
 			winston.info(`initCommunication/Client Message ${JSON.stringify(data)}`);
-			// flush queue if not sign-in request, and the player isn't signed in
-			// flush queue if not sign-in request, and the player isn't signed in
-			// flush queue if not sign-in request, and the player isn't signed in
-			// flush queue if not sign-in request, and the player isn't signed in
-			// flush queue if not sign-in request, and the player isn't signed in
-			// flush queue if not sign-in request, and the player isn't signed in
 			switch (data.msgType) {
 				case 'addPlayer':
 					Players.add(data, fn);
@@ -138,6 +119,15 @@ export function initCommunication() {
 					winston.info(`initCommunication/Unrecognized msgType: ${data.msgType}`);
 			}
 		});
+
+		socket.on('error', (error) => {
+			console.log(`On error ${JSON.stringify(error)}`);
+		});
+
+		socket.on('disconnecting', (reason) => {
+			console.log(`On disconnecting ${reason}`);
+		});
+
 		socket.on('disconnect', (reason) => {
 			for (let p of Players) {
 				if (p.sockid === socket.client.id) {
@@ -189,10 +179,3 @@ function doAbort() {
 	emitEasyAll('Reload', {});
 	process.exit(0);
 }
-
-
-export function saveLastMessageSid(sid, type, data, fn) { }
-
-export function saveLastMessageAll(sid, type, data, fn) { }
-
-export function reconnectPlayer()

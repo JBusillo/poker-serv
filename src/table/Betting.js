@@ -1,12 +1,13 @@
 import {
-	globals,
 	emitEasyAll,
 	emitEasySid,
 	Accounting,
 	bcastGameMessage,
 	bcastPlayerMessage,
 	pupTag,
-} from '../Controller.js';
+} from '../support/Controller.js';
+import { globals } from '../support/globals.js';
+
 import { getTablePlayers } from './Table.js';
 import winston from 'winston';
 

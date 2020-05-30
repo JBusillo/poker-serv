@@ -1,5 +1,6 @@
-import { v4 as uuidv4 } from 'uuid';
-import { emitEasyAll, emitEasySid, disconnect, globals } from './Controller.js';
+import { emitEasyAll, emitEasySid, disconnect } from './support/Controller.js';
+import { globals } from './support/globals.js';
+
 import winston from 'winston';
 import Player from './Player.js';
 
@@ -120,7 +121,3 @@ _Players.prototype.updateBreak = function () {
 		this.refreshAll();
 	}
 };
-
-function sleep(ms) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
-}

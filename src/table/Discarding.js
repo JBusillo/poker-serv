@@ -1,4 +1,6 @@
-import { globals, emitEasyAll, emitEasySid, bcastGameMessage } from '../Controller.js';
+import { emitEasyAll, emitEasySid, bcastGameMessage } from '../support/Controller.js';
+import { globals } from '../support/globals.js';
+
 import { getTablePlayers } from './Table.js';
 
 let tablePlayers;

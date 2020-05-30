@@ -5,6 +5,10 @@ export default class Config {
 		_cfg = cfg;
 	}
 
+	static get socketModule() {
+		return _cfg.socketModule;
+	}
+
 	static get environment() {
 		return _cfg.environment;
 	}

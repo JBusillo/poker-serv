@@ -6,6 +6,7 @@ export const config = {
 	headerOrigin: 'http://poker.cuencador.com',
 	port: 8083,
 	dumpPath: `/var/www/Poker/dump${Date.now().toString()}.json`,
+	socketModule: '../communication/SocketIo.js',
 };
 cfg.setConfig(config);
 

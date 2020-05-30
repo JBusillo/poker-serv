@@ -1,5 +1,5 @@
-import * as Deck from '../support/Deck.js';
-import { globals, Players, emitEasyAll, Accounting, bcastGameMessage, pupTag } from '../Controller.js';
+import { Players, emitEasyAll, Accounting, bcastGameMessage, pupTag } from '../support/Controller.js';
+import { globals } from '../support/globals.js';
 import { getTablePlayers, getHands } from './Table.js';
 
 let hands;

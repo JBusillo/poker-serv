@@ -12,7 +12,7 @@
 		"lines-around-comment": "off",
 		"no-console": "off",
 		"brace-style": "off",
-		"no-unused-vars": "off",
+		//		"no-unused-vars": "on",
 		"new-cap": "off",
 		"no-array-constructor": "off"
 	},

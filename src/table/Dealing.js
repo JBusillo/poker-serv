@@ -1,6 +1,7 @@
 import * as Deck from '../support/Deck.js';
-import { globals, emitEasyAll, emitEasySid, bcastGameMessage } from '../Controller.js';
+import { emitEasyAll, emitEasySid, bcastGameMessage } from '../support/Controller.js';
 import { getTablePlayers } from './Table.js';
+import { globals } from '../support/globals.js';
 
 let tablePlayers;
 /**

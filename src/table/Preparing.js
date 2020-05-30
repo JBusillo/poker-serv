@@ -1,4 +1,5 @@
-import { globals, Players } from '../Controller.js';
+import { Players } from '../support/Controller.js';
+import { globals } from '../support/globals.js';
 import { setTablePlayers, setHands } from './Table.js';
 
 /**
