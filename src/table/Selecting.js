@@ -13,6 +13,8 @@ import { getTablePlayers, setHands } from './Table.js';
 let hands;
 let tablePlayers;
 export async function selectCards(rule, prompt) {
+	emitEasyAll('PlayerShow', { clearAllMessages: true });
+
 	tablePlayers = getTablePlayers();
 	hands = [];
 	for (const player of tablePlayers) {

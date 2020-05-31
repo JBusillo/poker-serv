@@ -1,12 +1,12 @@
+import { _initWebSocket, _emitEasyAll, _emitEasySid } from '../communication/SockWs';
+//import { _initWebSocket, _emitEasyAll, _emitEasySid } from '../communication/SockIo';
+
 import { EventEmitter } from 'events';
-import { io } from '../Server.js';
 import fs from 'fs';
 import config from '../config/Config.js';
 import winston from 'winston';
 import _Players from '../Players.js';
 import { AccountingInit } from '../Accounting.js';
-import NewDeal from '../NewDeal.js';
-import * as Reconnect from './Reconnect.js';
 import { globals } from './globals';
 
 export let Players = [];
@@ -18,37 +18,19 @@ export const resumeEvent = new EventEmitter();
 let SockMap = new Map();
 
 export async function emitEasyAll(type, data, ...args) {
-	let actions = [];
-	actions.push({
-		type,
-		...data,
-	});
-	io.emit('PokerMessage', actions, ...args);
+	_emitEasyAll(type, data, ...args);
 }
 
 export function emitEasySid(sid, type, data, fn) {
-	Reconnect.saveLastMessageSid(sid, type, data, fn);
-	let sock = SockMap.get(sid);
-
-	let actions = [];
-	actions.push({
-		type,
-		...data,
-	});
-
-	if (fn) {
-		sock.emit('PokerMessage', actions, fn);
-	} else {
-		sock.emit('PokerMessage', actions);
-	}
+	_emitEasySid(sid, type, data, fn);
 }
 
 export function bcastGameMessage(message) {
-	emitEasyAll('InfoMsg', { message });
+	_emitEasyAll('InfoMsg', { message });
 }
 
 export function bcastPlayerMessage(uuid, message) {
-	emitEasyAll('PlayerShow', { uuid, message });
+	_emitEasyAll('PlayerShow', { uuid, message });
 }
 
 export function disconnect(sid) {
@@ -56,17 +38,22 @@ export function disconnect(sid) {
 	sock.disconnect(true);
 }
 
-// ? is used ?
-export function bcastPlayers() {
-	io.emit('PokerMessage', [{ type: 'Players', players: Array.from(Players) }]);
-}
-
 export function pupTag(tag) {
-	emitEasyAll('PupTag', { tag });
+	_emitEasyAll('PupTag', { tag });
 }
 
-export function initCommunication() {
-	winston.info(`initCommunication - Initializing`);
+export async function initCommunication() {
+	winston.info(`initCommunication`);
+
+	await _initWebSocket();
+
+	// import(/* webpackChunkName: "test" */ config.socketModule)
+	// 	.then((obj) => {
+	// 		console.log('Imported Module');
+	// 	})
+	// 	.catch((err) => {
+	// 		console.log(`Module Load Failed: ${JSON.stringify(err)}`);
+	// 	});
 
 	//Create the main Players object
 	Players = new _Players();
@@ -74,80 +61,14 @@ export function initCommunication() {
 	//Create the main Accounting object
 	let a = AccountingInit();
 	Accounting = Object.create(a);
-
-	// add the channel (notify when 'players' has changed
-	io.on('connection', (socket) => {
-		SockMap.set(socket.client.id, socket);
-		socket.on('ClientMessage', (indata, fn) => {
-			let data = { ...indata, sid: socket.client.id };
-			winston.info(`initCommunication/Client Message ${JSON.stringify(data)}`);
-			switch (data.msgType) {
-				case 'addPlayer':
-					Players.add(data, fn);
-					break;
-				case 'playerReady':
-					Players.ready(data, fn);
-					break;
-				case 'beginTable':
-					NewDeal(data, fn);
-					break;
-				case 'startNewRound':
-					NewDeal(data, fn);
-					break;
-				case 'doBuyIn':
-					Accounting.buyin(data, fn);
-					break;
-				case 'doDump':
-					doDump(data, fn);
-					break;
-				case 'goOnBreak':
-					goOnBreak(data, fn);
-					break;
-				case 'goOffBreak':
-					goOffBreak(data, fn);
-					break;
-				case 'pauseGame':
-					gamePause();
-					break;
-				case 'resumeGame':
-					gameResume();
-					break;
-				case 'abort':
-					doAbort();
-					break;
-				default:
-					winston.info(`initCommunication/Unrecognized msgType: ${data.msgType}`);
-			}
-		});
-
-		socket.on('error', (error) => {
-			console.log(`On error ${JSON.stringify(error)}`);
-		});
-
-		socket.on('disconnecting', (reason) => {
-			console.log(`On disconnecting ${reason}`);
-		});
-
-		socket.on('disconnect', (reason) => {
-			for (let p of Players) {
-				if (p.sockid === socket.client.id) {
-					console.log(`player ${p.name} disconnected, reason: ${reason}`);
-					p.setStatus(
-						{ status: 'Disconnected', isDisconnected: true, isOnBreak: true, isOnBreakNextRound: true },
-						true
-					);
-				}
-			}
-		});
-	});
 }
-function doDump(data, fn) {
+export function doDump(data, fn) {
 	fs.writeFileSync(`${config.dumpPath}dumpData${Date.now().toString()}.json`, JSON.stringify(data.dumpData));
 	fs.writeFileSync(`${config.dumpPath}dumpDOM${Date.now().toString()}.json`, JSON.stringify(data.dom));
 	fn();
 }
 
-function goOnBreak(data, fn) {
+export function goOnBreak(data, fn) {
 	let player = Players.getPlayerBySockId(data.sid);
 	if (player) {
 		if (!globals.gameInProgress) player.setStatus({ isOnBreak: true, status: 'On Break' });
@@ -157,7 +78,7 @@ function goOnBreak(data, fn) {
 	if (fn) fn();
 }
 
-function goOffBreak(data, fn) {
+export function goOffBreak(data, fn) {
 	let player = Players.getPlayerBySockId(data.sid);
 	if (player) {
 		if (!globals.gameInProgress) player.setStatus({ isOnBreak: false, status: 'Ready' });
@@ -167,15 +88,15 @@ function goOffBreak(data, fn) {
 	if (fn) fn();
 }
 
-function gamePause() {
+export function gamePause() {
 	globals.pauseGame = true;
 }
 
-function gameResume() {
+export function gameResume() {
 	resumeEvent.emit('resume');
 }
 
-function doAbort() {
+export function doAbort() {
 	emitEasyAll('Reload', {});
 	process.exit(0);
 }

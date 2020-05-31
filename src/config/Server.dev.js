@@ -6,7 +6,6 @@ const config = {
 	headerOrigin: 'http://localhost',
 	port: 8080,
 	dumpPath: `D:/Projects/poker-serv/`,
-	socketModule: '../communication/SocketIo.js',
 };
 
 cfg.setConfig(config);

@@ -21,10 +21,6 @@ module.exports = (env, argv) => {
 			filename: '[name].js',
 			devtoolModuleFilenameTemplate: `file:///${__dirname}`,
 		},
-		// resolve: {
-		// 	modules: ['node_modules'],
-		// },
-		//		mode: argv.mode,
 		target: 'node',
 		node: {
 			__dirname: false, // if you don't put this is, __dirname

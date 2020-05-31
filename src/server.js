@@ -1,5 +1,3 @@
-import http from 'http';
-import SocketIo from 'socket.io';
 import config from './config/Config.js';
 import { winster } from './support/Winster.js';
 import winston from 'winston';
@@ -20,15 +18,8 @@ export async function startUp() {
 		});
 	}
 
-	app = await http.createServer(() => {});
-	//	io = await SocketIo(app);
-	io = await new SocketIo(app, { pingTimeout: 120000 });
-
 	winston.info(`Node Version`);
 	winston.info(`Current Directory is ${__dirname}`);
 
-	initCommunication();
-
-	app.listen(config.port);
-	winston.info(`Listening on ${config.port}`);
+	await initCommunication();
 }
