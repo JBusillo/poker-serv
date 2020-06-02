@@ -1,18 +1,19 @@
-//import resolve from '@rollup/plugin-node-resolve';
+//import ignore from 'rollup-plugin-ignore';
+import builtins from 'rollup-plugin-node-builtins';
 import commonjs from '@rollup/plugin-commonjs';
 import visualizer from 'rollup-plugin-visualizer';
 import json from '@rollup/plugin-json';
-//import ignore from 'rollup-plugin-ignore';
-
-//import babel from '@rollup/plugin-babel';
-
-import builtins from 'rollup-plugin-node-builtins';
-
+import resolve from '@rollup/plugin-node-resolve';
+//import builtins from 'builtin-modules';
+import babel from '@rollup/plugin-babel';
 import del from 'rollup-plugin-delete';
 
 import { terser } from 'rollup-plugin-terser';
 
 const production = !process.env.ROLLUP_WATCH;
+
+console.log(production ? 'production' : 'development');
+console.log(process.cwd());
 
 const SERVER_PATH = production ? './src/config/Server.prod.js' : './src/config/Server.dev.js';
 
@@ -25,22 +26,25 @@ function onwarn(warning) {
 export default {
 	input: SERVER_PATH,
 	onwarn,
-	//	shimMissingExports: true,
 	output: {
 		sourcemap: true,
-		//		sourcemap: !production,
-		format: 'umd',
+		format: 'cjs',
 		name: 'PokerServer',
 		file: production ? 'dist/PokerServer.js' : 'debug/PokerServer.js',
 	},
+	//	external: builtins,
+
 	plugins: [
 		del({ targets: production ? 'dist/*' : 'debug/*' }),
-		//		ignore(['uws']),
-
-		//		resolve({ preferBuiltins: false }),
+		resolve({ preferBuiltins: false }),
 		commonjs(),
-		//		babel({ babelHelpers: 'bundled' }),
-		builtins(),
+		// commonjs(),
+		// babel({
+		// 	babelHelpers: 'bundled',
+		// 	extensions: ['.js', '.mjs', '.html'],
+		// 	include: ['src/**'],
+		// }),
+		//		builtins(),
 		json({
 			compact: true,
 		}),

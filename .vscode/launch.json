@@ -9,7 +9,6 @@
 			"type": "node",
 			"request": "launch",
 			"cwd": "${workspaceFolder}",
-			//			"env": { "DEBUG": "socket.io*" },
 			"runtimeExecutable": "npm",
 			"runtimeArgs": ["run-script", "debug"],
 			"port": 9230,

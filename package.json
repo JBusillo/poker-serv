@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"description": "Poker Server",
 	"main": "Server.js",
-	"module": "true",
+	"xodule": "true",
 	"scripts": {
 		"lint": "eslint ./src",
 		"deploy": "@pwsh -NoProfile -ExecutionPolicy Unrestricted -Command deploy_express_poker",
@@ -11,8 +11,7 @@
 		"debug3": "webpack --mode development --config webpack.server.config.js && nodemon --nolazy --inspect-brk=9230  debug/PokerServer.js",
 		"debug": "webpack --mode development --config webpack.server.config.js && node --inspect-brk=9230  debug/PokerServer.js",
 		"dev": "webpack  --mode development --config webpack.server.config.js && node --nolazy --inspect-brk=9230  debug/PokerServer.js ",
-		"dev2": "webpack  --mode development --config webpack.server.config.js",
-		"roll": "rollup -c"
+		"dev2": "webpack  --mode development --config webpack.server.config.js"
 	},
 	"author": "Joe Busillo",
 	"license": "ISC",
