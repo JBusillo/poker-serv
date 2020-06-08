@@ -66,23 +66,23 @@ _Players.prototype.refreshAll = function () {
 	emitEasyAll('Players', { players: Array.from(this) });
 };
 
-_Players.prototype.getNextActivePlayer = function () {
-	let playerIx = this.findIndex((e) => e.isDealer);
+_Players.prototype.getNextDealer = function () {
+	let prevDealerIx = this.findIndex((e) => e.isDealer);
+	if (prevDealerIx >= 0) this[prevDealerIx].setStatus({ isDealer: false });
 
-	for (let i = playerIx + 1; i < this.length; i++) {
-		if (!this[i].isOnBreak) {
-			this[i].isDealer = true;
-			this[i].setStatus({ isDealer: true });
-		}
-		return this[i];
-	}
-	for (let i = 0; i <= playerIx; i++) {
+	for (let i = prevDealerIx + 1; i < this.length; i++) {
 		if (!this[i].isOnBreak) {
 			this[i].setStatus({ isDealer: true });
 		}
 		return this[i];
 	}
-	console.log(`Players.getNextActivePlayer No Dealer Found!!`);
+	for (let i = 0; i <= prevDealerIx; i++) {
+		if (!this[i].isOnBreak) {
+			this[i].setStatus({ isDealer: true });
+		}
+		return this[i];
+	}
+	console.log(`Players.getNextDealer No Dealer Found!!`);
 	return null;
 };
 

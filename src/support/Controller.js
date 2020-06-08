@@ -1,5 +1,4 @@
 import { _initWebSocket, _emitEasyAll, _emitEasySid } from '../communication/SockWs';
-//import { _initWebSocket, _emitEasyAll, _emitEasySid } from '../communication/SockIo';
 
 import { EventEmitter } from 'events';
 import fs from 'fs';

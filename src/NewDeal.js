@@ -77,9 +77,9 @@ export default async function NewDeal(data) {
 		for (const player of Players) player.clearCards();
 
 		if (dealer) {
-			let tempDlr = Players.getNextActivePlayer();
-			if (tempDlr) {
-				dealer = Players.getNextActivePlayer();
+			let tempDlr = Players.getNextDealer();
+			if (tempDlr.uuid !== dealer.uuid) {
+				dealer = tempDlr;
 			} else {
 				bcastGameMessage('Waiting for more players to join');
 				emitEasyAll('MyActions', {
