@@ -5,9 +5,30 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"env": { "loader": "testdouble" },
+			"cwd": "${workspaceFolder}/test-poker-serv",
 			"type": "node",
 			"request": "launch",
-			"name": "Launch via NPM",
+			"name": "Mocha Tests",
+			"program": "${workspaceFolder}/test-poker-serv/node_modules/mocha/bin/_mocha",
+			//"program": "C://Users//jbusillo//AppData//Roaming//npm//node_modules//mocha//bin//mocha",
+			"args": [
+				"--loader=testdouble",
+				// "-u",
+				// "tdd",
+				"--timeout",
+				"999999",
+				"--colors",
+				"${workspaceFolder}/test-poker-serv/test"
+			],
+			"internalConsoleOptions": "openOnSessionStart",
+			"skipFiles": ["<node_internals>/**"]
+		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Launch Test",
+			"cwd": "${workspaceFolder}/test-poker-serv",
 			"runtimeExecutable": "npm",
 			"runtimeArgs": ["run-script", "debug"],
 			"port": 9229,

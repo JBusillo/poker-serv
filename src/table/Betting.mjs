@@ -5,10 +5,10 @@ import {
 	bcastGameMessage,
 	bcastPlayerMessage,
 	pupTag,
-} from '../support/Controller.js';
-import { globals } from '../support/globals.js';
+} from '../support/Controller.mjs';
+import { globals } from '../support/globals.mjs';
 
-import { getTablePlayers } from './Table.js';
+import { getTablePlayers } from './Table.mjs';
 import winston from 'winston';
 
 let sumOfRaises;

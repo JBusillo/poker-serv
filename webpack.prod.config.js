@@ -1,16 +1,15 @@
-const path = require('path');
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+import path from 'path';
+import { CleanWebpackPlugin } from 'clean-webpack-plugin';
 //const nodeExternals = require('webpack-node-externals');
 //let Visualizer = require('webpack-visualizer-plugin');
 //const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 module.exports = (env, argv) => {
-	const SERVER_PATH = './src/config/Server.prod.js';
+	const SERVER_PATH = './src/config/Server.prod.mjs';
 
 	const OUT_DIR = 'dist';
 	console.log(`SERVER_PATH ${SERVER_PATH}`);
-	console.log(__dirname);
-	console.log('[name]');
+	console.log(`DIRECTORY ${__dirname}`);
 
 	return {
 		entry: {
@@ -22,6 +21,14 @@ module.exports = (env, argv) => {
 			filename: '[name].js',
 		},
 		target: 'node',
+		module: {
+			rules: [
+				{
+					test: /\.mjs$/,
+					type: 'javascript/auto',
+				},
+			],
+		},
 		resolve: {
 			modules: ['node_modules'],
 		},

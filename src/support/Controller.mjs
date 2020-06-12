@@ -1,12 +1,12 @@
-import { _initWebSocket, _emitEasyAll, _emitEasySid } from '../communication/SockWs';
+import { _initWebSocket, _emitEasyAll, _emitEasySid } from '../communication/SockWs.mjs';
 
-import { EventEmitter } from 'events';
+import EventEmitter from 'events';
 import fs from 'fs';
-import config from '../config/Config.js';
+import config from '../config/Config.mjs';
 import winston from 'winston';
-import _Players from '../Players.js';
-import { AccountingInit } from '../Accounting.js';
-import { globals } from './globals';
+import _Players from '../Players.mjs';
+import { AccountingInit } from '../Accounting.mjs';
+import { globals } from './globals.mjs';
 
 export let Players = [];
 export let Accounting = null;

@@ -1,5 +1,5 @@
-import { startUp } from '../Server.js';
-import cfg from './Config.js';
+import { startUp } from '../Server.mjs';
+import cfg from './Config.mjs';
 
 const config = {
 	environment: 'development',
@@ -9,5 +9,4 @@ const config = {
 };
 
 cfg.setConfig(config);
-
 startUp();

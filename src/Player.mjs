@@ -1,4 +1,4 @@
-import { emitEasyAll, emitEasySid } from './support/Controller.js';
+import { emitEasyAll, emitEasySid } from './support/Controller.mjs';
 
 export default function Player(uuid, name, sockid) {
 	this.uuid = uuid;

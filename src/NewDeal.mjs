@@ -8,14 +8,14 @@ import {
 	emitEasySid,
 	pupTag,
 	resumeEvent,
-} from './support/Controller.js';
+} from './support/Controller.mjs';
 
-import { globals } from './support/globals.js';
+import { globals } from './support/globals.mjs';
 
 import winston from 'winston';
-import * as Deck from './support/Deck.js';
-import Texas from './games/Texas.js';
-import Omaha from './games/Omaha.js';
+import * as Deck from './support/Deck.mjs';
+import Texas from './games/Texas.mjs';
+import Omaha from './games/Omaha.mjs';
 
 let dealer = null;
 
@@ -124,7 +124,11 @@ export default async function NewDeal(data) {
 	}
 
 	// at this point we have 'dealer' and 'dealerData'
-	bcastGameMessage(`Dealer is ${dealer.name}; Game is ${dealerData.game}; Ante is ${dealerData.anteAmount}`);
+	bcastGameMessage(
+		`Dealer is ${dealer.name}; Game is ${dealerData.game}; Ante is ${(dealerData.anteAmount / 100).toFixed(
+			2
+		)}`
+	);
 	// Dealer has selected and picked game.  Debit his account for the ante amount
 	let player = Players.getPlayerByUuid(dealer.uuid);
 	Accounting.debitPlayerChips({ uuid: dealer.uuid, amount: dealerData.anteAmount });

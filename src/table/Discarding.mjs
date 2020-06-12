@@ -1,7 +1,7 @@
-import { emitEasyAll, emitEasySid, bcastGameMessage } from '../support/Controller.js';
-import { globals } from '../support/globals.js';
+import { emitEasyAll, emitEasySid, bcastGameMessage } from '../support/Controller.mjs';
+import { globals } from '../support/globals.mjs';
 
-import { getTablePlayers } from './Table.js';
+import { getTablePlayers } from './Table.mjs';
 
 let tablePlayers;
 

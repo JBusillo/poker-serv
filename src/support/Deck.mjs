@@ -1,5 +1,5 @@
 import winston from 'winston';
-import { bcastGameMessage } from './Controller.js';
+import { bcastGameMessage } from './Controller.mjs';
 
 let PokerDeck = makeDeck();
 let deckPointer = 0;

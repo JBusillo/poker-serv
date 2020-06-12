@@ -7,8 +7,8 @@ import {
 	gamePause,
 	gameResume,
 	doAbort,
-} from '../support/Controller.js';
-import NewDeal from '../NewDeal.js';
+} from '../support/Controller.mjs';
+import NewDeal from '../NewDeal.mjs';
 import winston from 'winston';
 
 export default function RouteMessage(data, fn) {

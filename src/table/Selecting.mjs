@@ -1,9 +1,9 @@
-import { Players, emitEasyAll, emitEasySid, bcastGameMessage, pupTag } from '../support/Controller.js';
-import { globals } from '../support/globals.js';
+import { Players, emitEasyAll, emitEasySid, bcastGameMessage, pupTag } from '../support/Controller.mjs';
+import { globals } from '../support/globals.mjs';
 
-import score from './Scoring.js';
+import score from './Scoring.mjs';
 import winston from 'winston';
-import { getTablePlayers, setHands } from './Table.js';
+import { getTablePlayers, setHands } from './Table.mjs';
 
 //-------------------------------------------------------------------------------------------
 //

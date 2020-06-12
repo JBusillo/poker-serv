@@ -1,6 +1,6 @@
-import { Players, emitEasyAll, Accounting, bcastGameMessage, pupTag } from '../support/Controller.js';
-import { globals } from '../support/globals.js';
-import { getTablePlayers, getHands } from './Table.js';
+import { Players, emitEasyAll, Accounting, bcastGameMessage, pupTag } from '../support/Controller.mjs';
+import { globals } from '../support/globals.mjs';
+import { getTablePlayers, getHands } from './Table.mjs';
 
 let hands;
 let tablePlayers;

@@ -1,8 +1,8 @@
-import { emitEasyAll, emitEasySid, disconnect } from './support/Controller.js';
-import { globals } from './support/globals.js';
+import { emitEasyAll, emitEasySid, disconnect } from './support/Controller.mjs';
+import { globals } from './support/globals.mjs';
 
 import winston from 'winston';
-import Player from './Player.js';
+import Player from './Player.mjs';
 
 export default function _Players() {}
 

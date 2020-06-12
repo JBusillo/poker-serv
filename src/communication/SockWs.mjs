@@ -1,8 +1,8 @@
 import WebSocket from 'isomorphic-ws';
-import { v4 as uuidv4 } from 'uuid';
-import RouteTable from '../support/RouteTable.js';
+import uuidv4 from 'uuid/v4.js';
+import RouteTable from '../support/RouteTable.mjs';
 import querystring from 'querystring';
-import config from '../config/Config';
+import config from '../config/Config.mjs';
 
 // Map for conversation initiated by Server
 // key=serverAckId, data={callback}

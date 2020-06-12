@@ -1,17 +1,26 @@
-import { Players } from '../support/Controller.js';
-import * as Deck from '../support/Deck.js';
-import * as Table from '../table/Table.js';
+import { Players } from '../support/Controller.mjs';
+import * as Deck from '../support/Deck.mjs';
+import * as Table from '../table/Table.mjs';
 
-export default async function Omaha(variation) {
+export default async function Texas(variation) {
 	// Reset Table
 	Table.prepareForNewRound();
 
 	// Shuffle Deck
 	Deck.shuffle();
 
-	// Two cards face down to each player, first betting round
 	if (Players.activeCount() > 1) {
-		await Table.dealToPlayers(4);
+		if (variation && variation === 'Pineapple') {
+			// Pineapple -- deal 3 facedown, discard 1
+			await Table.dealToPlayers(3);
+			await Table.discard('1Card', 'Pineapple: Pick one card to discard');
+		} else {
+			// Texas - no discards, 2 cards face down
+			await Table.dealToPlayers(2);
+		}
+	}
+
+	if (Players.activeCount() > 1) {
 		await Table.bettingRound(1);
 	}
 
@@ -34,9 +43,8 @@ export default async function Omaha(variation) {
 	}
 
 	// Player selects the five cards to show
-	// Player selects the five cards to show
-	await Table.selectCards('2M/3T', 'Must select 2 of your cards, 3 from table');
+	await Table.selectCards('5Total', 'Select five cards to play');
 
 	// Calculate winner, do accounting, etc.
-	await Table.calculateWinner(variation);
+	await Table.calculateWinner();
 }

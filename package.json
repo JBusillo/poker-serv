@@ -2,26 +2,24 @@
 	"name": "poker-serv",
 	"version": "1.0.0",
 	"description": "Poker Server",
-	"main": "Server.js",
-	"xodule": "true",
-	"jest": {
-		"verbose": true
-	},
+	"main": "App.js",
+	"xtype": "module",
 	"scripts": {
 		"lint": "eslint ./src",
-		"build": "webpack  --mode production --config webpack.prod.config.js",
+		"build": "webpack  -r esm --mode production --config webpack.prod.config.js",
 		"deploy": "@pwsh -NoProfile -ExecutionPolicy Unrestricted -Command deploy_express_poker",
 		"debug2": "webpack --watch --inspect=localhost:9230 --mode development --config webpack.server.config.js",
 		"debug3": "webpack --mode development --config webpack.server.config.js && nodemon --nolazy --inspect-brk=9230  debug/PokerServer.js",
 		"debug": "webpack --mode development --config webpack.dev.config.js && nodemon --nolazy --inspect-brk=9229  debug/PokerServer.js",
-		"dev": "webpack  --mode development --config webpack.dev.config.js && node --nolazy --inspect-brk=9230  debug/PokerServer.js ",
-		"dev2": "webpack  --mode development --config webpack.server.config.js"
+		"dev": "webpack  -r esm --mode development --config webpack.dev.config.js && node --nolazy --inspect-brk=9230  debug/PokerServer.js ",
+		"kill": "@powershell -Command Stop-Process -Id (Get-NetTCPConnection -LocalPort 8080).OwningProcess -Force"
 	},
 	"author": "Joe Busillo",
 	"license": "ISC",
 	"dependencies": {
 		"bufferutil": "^4.0.1",
 		"copy-node-modules": "^1.1.1",
+		"esm": "^3.2.25",
 		"fs": "0.0.1-security",
 		"isomorphic-ws": "^4.0.1",
 		"path": "^0.12.7",
@@ -43,9 +41,9 @@
 		"eslint-config-prettier": "^6.11.0",
 		"eslint-config-synacor": "^3.0.5",
 		"eslint-loader": "^3.0.4",
-		"jest": "^26.0.1",
 		"nodemon": "^2.0.4",
 		"nodemon-webpack-plugin": "^4.3.1",
+		"testdouble": "^3.16.0",
 		"uglifyjs-webpack-plugin": "^2.2.0",
 		"webpack": "^4.43.0",
 		"webpack-bundle-analyzer": "^3.8.0",

@@ -1,0 +1,23 @@
+{
+    "name": "test-poker-serv",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test:unit3": "mocha -r '../src/config/Server.dev.mjs' ./test/lib/*.{mjs,js}",
+        "test:unit": "mocha --loader=testdouble ./test/lib/**/*.{mjs,js}",
+        "test": "mocha --loader=testdouble ./test/*.{mjs,js}",
+        "debug1": "mocha --loader=testdouble ./test/*.{mjs,js}",
+        "debug": "npm test -- --inspect-brk"
+    },
+    "devDependencies": {
+        "mocha": "^8.0.1",
+        "testdouble": "^3.16.0"
+    },
+    "standard": {
+        "globals": [
+            "td",
+            "assert"
+        ]
+    },
+    "dependencies": {}
+}

@@ -1,5 +1,5 @@
 import winston from 'winston';
-import RouteTable from '../support/RouteTable.js';
+import RouteTable from '../support/RouteTable.mjs';
 import http from 'http';
 import config from '../config/Config.js';
 import SocketIo from 'socket.io';

@@ -7,6 +7,10 @@
 	"env": {
 		"node": true
 	},
+	"globals": {
+		"td": true,
+		"assert": true
+	},
 	"rules": {
 		"comma-dangle": "off",
 		"lines-around-comment": "off",
@@ -15,6 +19,14 @@
 		//		"no-unused-vars": "on",
 		"new-cap": "off",
 		"no-array-constructor": "off"
+		// "template-curly-spacing": "off",
+		// "indent": [
+		// 	"error",
+		// 	2,
+		// 	{
+		// 		"ignoredNodes": ["TemplateLiteral"]
+		// 	}
+		// ]
 	},
 	"extends": ["eslint:recommended", "eslint-config-synacor"]
 }

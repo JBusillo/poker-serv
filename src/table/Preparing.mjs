@@ -1,6 +1,6 @@
-import { Players } from '../support/Controller.js';
-import { globals } from '../support/globals.js';
-import { setTablePlayers, setHands } from './Table.js';
+import { Players } from '../support/Controller.mjs';
+import { globals } from '../support/globals.mjs';
+import { setTablePlayers, setHands } from './Table.mjs';
 
 /**
  * Prepares the table for a new round

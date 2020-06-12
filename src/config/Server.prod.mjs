@@ -1,5 +1,5 @@
-import { startUp } from '../Server.js';
-import cfg from './Config.js';
+import { startUp } from '../Server.mjs';
+import cfg from './Config.mjs';
 
 export const config = {
 	environment: 'production',

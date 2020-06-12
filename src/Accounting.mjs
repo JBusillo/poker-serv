@@ -1,4 +1,4 @@
-import { Players, emitEasyAll } from './support/Controller.js';
+import { Players, emitEasyAll } from './support/Controller.mjs';
 
 export function AccountingInit() {
 	let Accounting = new Map();

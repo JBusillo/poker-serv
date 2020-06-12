@@ -1,9 +1,9 @@
-import { prepareForNewRound as _prepareForNewRound } from './Preparing.js';
-import { dealToPlayers as _dealToPlayers, dealToTable as _dealToTable } from './Dealing.js';
-import { bettingRound as _bettingRound } from './Betting.js';
-import { discard as _discard } from './Discarding.js';
-import { selectCards as _selectCards } from './Selecting.js';
-import { calculateWinner as _calculateWinner } from './Winning.js';
+import { prepareForNewRound as _prepareForNewRound } from './Preparing.mjs';
+import { dealToPlayers as _dealToPlayers, dealToTable as _dealToTable } from './Dealing.mjs';
+import { bettingRound as _bettingRound } from './Betting.mjs';
+import { discard as _discard } from './Discarding.mjs';
+import { selectCards as _selectCards } from './Selecting.mjs';
+import { calculateWinner as _calculateWinner } from './Winning.mjs';
 
 let hands = []; // work table to calculate winners and payouts
 let tablePlayers = []; // array of players in dealing order

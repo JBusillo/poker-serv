@@ -4,3 +4,4 @@ dist
 production.tar
 *.log
 dump*.json
+stats.html
