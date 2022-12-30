@@ -10,7 +10,7 @@
         "debug": "npm test -- --inspect-brk"
     },
     "devDependencies": {
-        "mocha": "^8.0.1",
+        "mocha": "^8.4.0",
         "testdouble": "^3.16.0"
     },
     "standard": {
